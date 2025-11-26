@@ -2,8 +2,9 @@ using UnityEngine;
 
 public class Piece : MonoBehaviour
 {
-    [SerializeField] private PieceType _pieceType;
-    [SerializeField] private PlayerSide _playerSide;
+    [SerializeField] public PieceType _pieceType; // 駒の種類
+    [SerializeField] public bool _isPromoted = false; // 成っているかどうか
+    [SerializeField] public PlayerSide _playerSide;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
