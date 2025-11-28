@@ -46,6 +46,8 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
+        Debug.Log("[GameManager] Start");
+
         // マスのワールド座標初期化
         InitializeCellWorldPositions();
 
@@ -162,6 +164,8 @@ public class GameManager : MonoBehaviour
     // 移動先候補を取得
     private Vector2Int[] GetMoveDestinationCandidates(Piece playerPiece, PlayerSide playerSide)
     {
+        Debug.Log($"Getting move destinations for piece: {playerPiece._pieceType} at {WorldToLogicPosition(playerPiece.transform.position)}");
+
         // 移動先候補リスト
         List<Vector2Int> destinationCandidates = new List<Vector2Int>();
 
@@ -210,44 +214,26 @@ public class GameManager : MonoBehaviour
                 {
                     for(int y = playerPieceLogicPos.y + 1; y < BOARD_SIZE; y++)
                     {
-                        // 味方がいる場合はこのマスの前まで
-                        // 相手がいる場合はこのマスまで
+                        // 候補に追加
+                        destinationCandidates.Add(new Vector2Int(playerPieceLogicPos.x, y));
+                        // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
                         if(IsCellOccupied(new Vector2Int(playerPieceLogicPos.x, y), out var occupyingPiece))
                         {
-                            if(occupyingPiece._playerSide == playerSide)
-                            {
-                                break;
-                            }
-                            else
-                            {
-                                destinationCandidates.Add(new Vector2Int(playerPieceLogicPos.x, y));
-                                break;
-                            }
+                            break;   
                         }
-                        // 駒がいなければ候補に追加
-                        destinationCandidates.Add(new Vector2Int(playerPieceLogicPos.x, y));
                     }
                 }
                 else // PlayerSide.Top
                 {
                     for(int y = playerPieceLogicPos.y - 1; y >= 0; y--)
                     {
-                        // 味方がいる場合はこのマスの前まで
-                        // 相手がいる場合はこのマスまで
+                        // 候補に追加
+                        destinationCandidates.Add(new Vector2Int(playerPieceLogicPos.x, y));
+                        // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
                         if(IsCellOccupied(new Vector2Int(playerPieceLogicPos.x, y), out var occupyingPiece))
                         {
-                            if(occupyingPiece._playerSide == playerSide)
-                            {
-                                break;
-                            }
-                            else
-                            {
-                                destinationCandidates.Add(new Vector2Int(playerPieceLogicPos.x, y));
-                                break;
-                            }
+                            break;
                         }
-                        // 駒がいなければ候補に追加
-                        destinationCandidates.Add(new Vector2Int(playerPieceLogicPos.x, y));
                     }
                 }
                 break;
@@ -324,13 +310,115 @@ public class GameManager : MonoBehaviour
                 break;
             case PieceType.KAKU:
                 // 角行は斜め方向に何マスでも移動可能
-                // TODO: 実装
                 // 斜めに追加していき、味方がいる場合はそのマスの前まで、相手がいる場合はそのマスまで追加して止める
+                // 左上
+                for(int  distance = 1; distance < BOARD_SIZE; distance++)
+                {
+                    Vector2Int p0 = new Vector2Int(playerPieceLogicPos.x + distance, playerPieceLogicPos.y + distance);
+
+                    // 候補に追加
+                    destinationCandidates.Add(p0);
+                    // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
+                    if(IsCellOccupied(p0, out var occupyingPiece))
+                    {
+                        break; 
+                    }
+                }
+                // 右上
+                for(int  distance = 1; distance < BOARD_SIZE; distance++)
+                {
+                    Vector2Int p1 = new Vector2Int(playerPieceLogicPos.x - distance, playerPieceLogicPos.y + distance);
+                    
+                    // 候補に追加
+                    destinationCandidates.Add(p1);
+                    // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
+                    if(IsCellOccupied(p1, out var occupyingPiece))
+                    {
+                        break;
+                    }
+                }
+                // 左下
+                for(int  distance = 1; distance < BOARD_SIZE; distance++)
+                {
+                    Vector2Int p2 = new Vector2Int(playerPieceLogicPos.x + distance, playerPieceLogicPos.y - distance);
+
+                    // 候補に追加
+                    destinationCandidates.Add(p2);
+                    // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
+                    if(IsCellOccupied(p2, out var occupyingPiece))
+                    {
+                        break;
+                    }
+                }
+                // 右下
+                for(int  distance = 1; distance < BOARD_SIZE; distance++)
+                {
+                    Vector2Int p3 = new Vector2Int(playerPieceLogicPos.x - distance, playerPieceLogicPos.y - distance);
+
+                    // 候補に追加
+                    destinationCandidates.Add(p3);
+                    // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
+                    if(IsCellOccupied(p3, out var occupyingPiece))
+                    {
+                        break;
+                    }
+                }
                 break;
             case PieceType.HISHA:
                 // 飛車は縦横方向に何マスでも移動可能
-                // TODO: 実装
                 // 縦横に追加していき、味方がいる場合はそのマスの前まで、相手がいる場合はそのマスまで追加して止める
+                // 上
+                for(int  distance = 1; distance < BOARD_SIZE; distance++)
+                {
+                    Vector2Int p0 = new Vector2Int(playerPieceLogicPos.x, playerPieceLogicPos.y + distance);
+
+                    // 候補に追加
+                    destinationCandidates.Add(p0);
+                    // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
+                    if(IsCellOccupied(p0, out var occupyingPiece))
+                    {
+                        break;
+                    }
+                }
+                // 下
+                for(int  distance = 1; distance < BOARD_SIZE; distance++)
+                {
+                    Vector2Int p1 = new Vector2Int(playerPieceLogicPos.x, playerPieceLogicPos.y - distance);
+
+                    // 候補に追加
+                    destinationCandidates.Add(p1);
+                    // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
+                    if(IsCellOccupied(p1, out var occupyingPiece))
+                    {
+                        break;
+                    }
+                }
+                // 左
+                for(int  distance = 1; distance < BOARD_SIZE; distance++)
+                {
+                    Vector2Int p2 = new Vector2Int(playerPieceLogicPos.x - distance, playerPieceLogicPos.y);
+
+                    // 候補に追加
+                    destinationCandidates.Add(p2);
+                    // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
+                    if(IsCellOccupied(p2, out var occupyingPiece))
+                    {
+                        break;
+                    }
+                }
+                // 右
+                for(int  distance = 1; distance < BOARD_SIZE; distance++)
+                {
+                    Vector2Int p3 = new Vector2Int(playerPieceLogicPos.x + distance, playerPieceLogicPos.y);
+
+                    // 候補に追加
+                    destinationCandidates.Add(p3);
+                    // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
+                    if(IsCellOccupied(p3, out var occupyingPiece))
+                    {
+                        break;
+                    }
+                }
                 break;
             case PieceType.OU or PieceType.GYOKU:
                 // 王将・玉将は1マス八方に移動可能
@@ -371,14 +459,26 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        // 将棋盤の範囲外の候補と味方の駒がいる候補を削除
+        // 将棋盤の範囲外の候補を削除
         destinationCandidates.RemoveAll(pos => pos.x < 0 || pos.x >= BOARD_SIZE || pos.y < 0 || pos.y >= BOARD_SIZE);
+
+        // 味方の駒がいるマスの候補を削除
+        destinationCandidates.RemoveAll(pos => IsCellOccupied(pos, out var occupyingPiece) && occupyingPiece._playerSide == playerSide);
+
+        Debug.Log($"候補座標: {string.Join(", ", destinationCandidates)}");
 
         return destinationCandidates.ToArray();
     }
     // 指定したロジック座標に駒が存在するかどうかを判定する
     private bool IsCellOccupied(Vector2Int logicPos, out Piece occupyingPiece)
     {
+        // 範囲外チェック
+        if (logicPos.x < 0 || logicPos.x >= BOARD_SIZE || logicPos.y < 0 || logicPos.y >= BOARD_SIZE)
+        {
+            occupyingPiece = null;
+            return false;
+        }
+
         Vector3 cellWorldPos = _cellWorldPositions[logicPos.x, logicPos.y];
 
         _clickRaycaster.TryGetPiece(cellWorldPos, out occupyingPiece);
@@ -422,7 +522,7 @@ public class GameManager : MonoBehaviour
         bool isClickedOnDestination = false;
         // ここで選択された駒の移動先候補かどうかを判定する処理を追加
         // 仮に常に true としておく
-        isClickedOnDestination = isClicked; // TODO: 移動先候補かどうかを判定するロジックを実装
+        isClickedOnDestination = System.Array.Exists(_currentSelectedPieceDestinationCandidates, pos => pos == logicPos);
 
         // 選択された駒の移動先候補がクリックされた→駒を移動中へ遷移
         if (isClickedOnDestination)
@@ -443,19 +543,19 @@ public class GameManager : MonoBehaviour
             _currentSelectedPiece = null;
             _currentSelectedPieceDestinationCandidates = null;
             _currentSelectedPieceDestination = new Vector2Int(-1, -1);
-            Debug.Log("Cancelled piece selection.");
+            Debug.Log("移動できないマスがクリックされました。駒選択待ちに戻ります。");
         }
     }
 
     // 駒を移動中の処理
     private void HandlePieceMoving()
     {
-        // 駒を移動先へ移動
+        // 移動中なら何もしない
+        if (_isPieceMoving) return;
+
+        // 駒を移動中フラグを立てる        
         _isPieceMoving = true;
 
-        // 移動中なら何もしない
-        if (!_isPieceMoving) return;
-        
         // コルーチンで駒を移動
         StartCoroutine(MovePieceToDestination(_currentSelectedPiece, _currentSelectedPieceDestination));
     }

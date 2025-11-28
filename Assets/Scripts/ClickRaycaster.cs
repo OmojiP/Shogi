@@ -49,7 +49,7 @@ public class ClickRaycaster : MonoBehaviour
         clickedPiece = null;
         
         // Ray を飛ばす
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        Ray ray = new Ray(position + Vector3.up * 10f, Vector3.down);
         RaycastHit[] hits = Physics.RaycastAll(ray);
         for(int i = 0; i < hits.Length; i++)
         {
