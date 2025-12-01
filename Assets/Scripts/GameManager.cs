@@ -319,7 +319,7 @@ public class GameManager : MonoBehaviour
                 }
                 break;
             case PieceType.KIN:
-                // 金将は1マス前方、左右、後方斜めに移動可能
+                // 金将は1マス前方、左右、前方斜めに移動可能
                 if(playerSide == PlayerSide.Bottom)
                 {
                     destinationCandidates = new List<Vector2Int>
@@ -327,9 +327,9 @@ public class GameManager : MonoBehaviour
                         new Vector2Int(playerPieceLogicPos.x, playerPieceLogicPos.y + 1),
                         new Vector2Int(playerPieceLogicPos.x - 1, playerPieceLogicPos.y),
                         new Vector2Int(playerPieceLogicPos.x + 1, playerPieceLogicPos.y),
-                        new Vector2Int(playerPieceLogicPos.x - 1, playerPieceLogicPos.y - 1),
+                        new Vector2Int(playerPieceLogicPos.x - 1, playerPieceLogicPos.y + 1),
                         new Vector2Int(playerPieceLogicPos.x, playerPieceLogicPos.y - 1),
-                        new Vector2Int(playerPieceLogicPos.x + 1, playerPieceLogicPos.y - 1)
+                        new Vector2Int(playerPieceLogicPos.x + 1, playerPieceLogicPos.y + 1)
                     };
                 }
                 else // PlayerSide.Top
@@ -339,9 +339,9 @@ public class GameManager : MonoBehaviour
                         new Vector2Int(playerPieceLogicPos.x, playerPieceLogicPos.y - 1),
                         new Vector2Int(playerPieceLogicPos.x - 1, playerPieceLogicPos.y),
                         new Vector2Int(playerPieceLogicPos.x + 1, playerPieceLogicPos.y),
-                        new Vector2Int(playerPieceLogicPos.x - 1, playerPieceLogicPos.y + 1),
+                        new Vector2Int(playerPieceLogicPos.x - 1, playerPieceLogicPos.y - 1),
                         new Vector2Int(playerPieceLogicPos.x, playerPieceLogicPos.y + 1),
-                        new Vector2Int(playerPieceLogicPos.x + 1, playerPieceLogicPos.y + 1)
+                        new Vector2Int(playerPieceLogicPos.x + 1, playerPieceLogicPos.y - 1)
                     };
                 }
                 break;
@@ -526,6 +526,7 @@ public class GameManager : MonoBehaviour
     private void HandlePieceSelect()
     {
         // 自分の駒がクリックされた→移動先のクリック待ちへ遷移
+        // TODO: 持ち駒をクリックした際の処理を追加する
         if (_clickRaycaster.TryGetClickedPosition(out Vector3 clickedPosition, out var clickedPiece))
         {
             if(clickedPiece != null && clickedPiece._playerSide == _currentPlayerSide)
@@ -640,7 +641,6 @@ public class GameManager : MonoBehaviour
         }
         piece.transform.position = targetPosition;
 
-        // TODO: 相手の駒があるマスなら駒を取る処理をここに追加
         // 相手の駒を自分のサイドに書き換えて陣地に移動
         if(isEnemyPiecePresent)
         {
@@ -658,7 +658,6 @@ public class GameManager : MonoBehaviour
             occupyingPiece.transform.rotation = (piece._playerSide == PlayerSide.Bottom) ? Quaternion.Euler(0, 180, 0) : Quaternion.identity;
         }
 
-        // TODO: 相手の陣地に入ったら成る処理をここに追加
         Vector2Int pieceLogicPos = WorldToLogicPosition(piece.transform.position);
         bool isInPromotionZone = (piece._playerSide == PlayerSide.Bottom && pieceLogicPos.y >= 6) ||
                                  (piece._playerSide == PlayerSide.Top && pieceLogicPos.y <= 2);
