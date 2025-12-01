@@ -7,12 +7,27 @@ public class GameManager : MonoBehaviour
     // 盤データ
     // 盤のサイズ
     private readonly int BOARD_SIZE = 9;
+    // 将棋盤のマスのプレハブ
+    [SerializeField] private GameObject _stageCellPrefab;
+    // 将棋盤のマスの親オブジェクト
+    [SerializeField] private Transform _cellParentTransform;
+    // 将棋盤のマスTransform
+    private Transform[,] _stageCells;
     // 将棋盤のマスの中心位置
-    [SerializeField] private Vector3 _cellCenterPosition = new Vector3(0, 0, 0);
+    [SerializeField] private Vector3 _cellCenterPosition = new Vector3(0, 0.25f, 0);
     // マス間の間隔
-    [SerializeField] private float _cellSpacing = 0.2f;
+    [SerializeField] private float _cellSpacing = 0.1f;
     // マスのロジック座標からワールド座標への変換テーブル
     private Vector3[,] _cellWorldPositions;
+    // 駒台
+    [SerializeField] private Transform _pieceStageTop;
+    [SerializeField] private Transform _pieceStageBottom;
+    private Vector3 _pieceStageTopPosition;
+    private Vector3 _pieceStageBottomPosition;
+
+    // マテリアル
+    [SerializeField] private Material _highlightCellMaterial; // 移動可能マスのハイライト用マテリアル
+    [SerializeField] private Material _defaultCellMaterial; // デフォルトの将棋盤マテリアル
 
     // 将棋駒のプレハブ配列
     // 0: 歩, 1: 香車, 2: 桂馬, 3: 銀将, 4: 金将, 5: 角行, 6: 飛車, 7: 王将, 8: 玉将
@@ -48,13 +63,15 @@ public class GameManager : MonoBehaviour
     {
         Debug.Log("[GameManager] Start");
 
-        // マスのワールド座標初期化
-        InitializeCellWorldPositions();
+        // 駒台の座標を取得
+        _pieceStageTopPosition = _pieceStageTop.position;
+        _pieceStageBottomPosition = _pieceStageBottom.position;
+
+        // 将棋盤のマスを生成
+        _stageCells = GenerateStageCells();
 
         // 将棋盤に駒を生成
         SpawnPieces(_initialPlacementTextAsset);
-
-        // 
     }
 
     void Update()
@@ -80,20 +97,40 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // マスのワールド座標を初期化する
-    private void InitializeCellWorldPositions()
+    // 将棋盤のマスを生成する
+    private Transform[,] GenerateStageCells()
     {
+        var stageCells = new Transform[BOARD_SIZE, BOARD_SIZE];
         _cellWorldPositions = new Vector3[BOARD_SIZE, BOARD_SIZE];
+
         for (int x = 0; x < BOARD_SIZE; x++)
         {
             for (int y = 0; y < BOARD_SIZE; y++)
             {
-                _cellWorldPositions[x, y] = new Vector3(
+                Vector3 masPos = new Vector3(
                     _cellCenterPosition.x + (x - BOARD_SIZE / 2) * _cellSpacing,
                     _cellCenterPosition.y,
                     _cellCenterPosition.z + (y - BOARD_SIZE / 2) * _cellSpacing
                 );
+                stageCells[x, y] = Instantiate(_stageCellPrefab, masPos, Quaternion.identity, _cellParentTransform).transform;
+                // マスのワールド座標を保存
+                _cellWorldPositions[x, y] = masPos;
             }
+        }
+        return stageCells;
+    }
+
+    private void ChangeCellMaterial(bool isHighlight, Vector2Int logicPos)
+    {
+        if(isHighlight)
+        {
+            // ハイライト用マテリアルに変更
+            _stageCells[logicPos.x, logicPos.y].GetComponent<Renderer>().material = _highlightCellMaterial;
+        }
+        else
+        {
+            // デフォルトマテリアルに変更
+            _stageCells[logicPos.x, logicPos.y].GetComponent<Renderer>().material = _defaultCellMaterial;
         }
     }
 
@@ -152,7 +189,7 @@ public class GameManager : MonoBehaviour
 
             if (piecePrefab != null)
             {
-                Vector3 spawnPosition = _cellWorldPositions[x, y];
+                Vector3 spawnPosition = _cellWorldPositions[x, y] + Vector3.up * 0.01f; // 少し浮かせて配置
                 Quaternion spawnRotation = (side == "Upper") ? Quaternion.identity : Quaternion.Euler(0, 180, 0); // 下側の駒は180度回転
                 var piece = Instantiate(piecePrefab, spawnPosition, spawnRotation, _pieceParentTransform);
                 // 駒のプレイヤーサイドを設定
@@ -563,7 +600,11 @@ public class GameManager : MonoBehaviour
     // 駒を目的地まで移動させるコルーチン
     private IEnumerator MovePieceToDestination(Piece piece, Vector2Int destination)
     {
-        Vector3 targetPosition = _cellWorldPositions[destination.x, destination.y];
+        Vector3 targetPosition = _cellWorldPositions[destination.x, destination.y]+ Vector3.up * 0.01f;
+
+        // targetPositionに相手の駒があるか確認
+        _clickRaycaster.TryGetPiece(targetPosition, out var occupyingPiece);
+        bool isEnemyPiecePresent = occupyingPiece != null && occupyingPiece._playerSide != piece._playerSide;
 
         // 移動アニメーション
         float elapsedTime = 0f;
@@ -577,7 +618,35 @@ public class GameManager : MonoBehaviour
         piece.transform.position = targetPosition;
 
         // TODO: 相手の駒があるマスなら駒を取る処理をここに追加
+        // 相手の駒を自分のサイドに書き換えて陣地に移動
+        if(isEnemyPiecePresent)
+        {
+            Debug.Log($"Captured piece: {occupyingPiece._pieceType} at {destination}");
+            // 駒のサイドを変更
+            occupyingPiece._playerSide = piece._playerSide;
+            // 駒を陣地に移動させる(仮に盤外の位置に移動させる)
+            Vector3 offBoardPosition = new Vector3(
+                (piece._playerSide == PlayerSide.Bottom) ? _pieceStageBottomPosition.x : _pieceStageTopPosition.x,
+                occupyingPiece.transform.position.y,
+                (piece._playerSide == PlayerSide.Bottom) ? _pieceStageBottomPosition.z : _pieceStageTopPosition.z
+            );
+            occupyingPiece.transform.position = offBoardPosition;
+            // 駒の向きを変更
+            occupyingPiece.transform.rotation = (piece._playerSide == PlayerSide.Bottom) ? Quaternion.Euler(0, 180, 0) : Quaternion.identity;
+        }
+
         // TODO: 相手の陣地に入ったら成る処理をここに追加
+        Vector2Int pieceLogicPos = WorldToLogicPosition(piece.transform.position);
+        bool isInPromotionZone = (piece._playerSide == PlayerSide.Bottom && pieceLogicPos.y >= 6) ||
+                                 (piece._playerSide == PlayerSide.Top && pieceLogicPos.y <= 2);
+        if(isInPromotionZone && !piece._isPromoted)
+        {
+            // 成る処理を行う(後で成るか選択できるようにする)
+            piece._isPromoted = true;
+            // 裏返す
+            piece.transform.Rotate(0, 0, 180);
+            Debug.Log($"Piece promoted: {piece._pieceType} at {pieceLogicPos}");
+        }
 
         // 駒の移動完了後の処理
         _isPieceMoving = false;
