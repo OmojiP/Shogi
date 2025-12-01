@@ -4,6 +4,7 @@ public class Piece : MonoBehaviour
 {
     [SerializeField] public PieceType _pieceType; // 駒の種類
     [SerializeField] public bool _isPromoted = false; // 成っているかどうか
+    [SerializeField] public bool _isMainStagePiece = true; // メインステージの駒かどうか(持ち駒かどうか)
     [SerializeField] public PlayerSide _playerSide;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created

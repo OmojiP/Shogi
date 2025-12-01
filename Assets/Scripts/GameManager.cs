@@ -24,6 +24,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Transform _pieceStageBottom;
     private Vector3 _pieceStageTopPosition;
     private Vector3 _pieceStageBottomPosition;
+    // 歩のオブジェクト
+    private List<Piece> _fuPieces = new List<Piece>();
 
     // マテリアル
     [SerializeField] private Material _highlightCellMaterial; // 移動可能マスのハイライト用マテリアル
@@ -194,6 +196,12 @@ public class GameManager : MonoBehaviour
                 var piece = Instantiate(piecePrefab, spawnPosition, spawnRotation, _pieceParentTransform);
                 // 駒のプレイヤーサイドを設定
                 piece.GetComponent<Piece>()._playerSide = (side == "Upper") ? PlayerSide.Top : PlayerSide.Bottom;
+
+                // 歩のオブジェクトならリストに追加
+                if(piece.GetComponent<Piece>()._pieceType == PieceType.FU)
+                {
+                    _fuPieces.Add(piece.GetComponent<Piece>());
+                }
             }
         }
     }
@@ -205,6 +213,41 @@ public class GameManager : MonoBehaviour
 
         // 移動先候補リスト
         List<Vector2Int> destinationCandidates = new List<Vector2Int>();
+
+        // 持ち駒の場合は処理を分ける
+        if (!playerPiece._isMainStagePiece)
+        {
+            // 全空きマスに移動可能(二歩注意)
+            for (int x = 0; x < BOARD_SIZE; x++)
+            {
+                for (int y = 0; y < BOARD_SIZE; y++)
+                {
+                    Vector2Int pos = new Vector2Int(x, y);
+                    // そのマスに駒が存在しない場合のみ追加
+                    if(!IsCellOccupied(pos, out var occupyingPiece))
+                    {
+                        destinationCandidates.Add(pos);
+                    }
+                }
+            }
+
+            // 二歩を除外
+            if(playerPiece._pieceType == PieceType.FU)
+            {
+                foreach(var fu in _fuPieces)
+                {
+                    // 同じプレイヤーサイドの歩のみ対象
+                    if(fu._playerSide == playerSide && fu._isMainStagePiece)
+                    {
+                        // 歩のいる列を取得
+                        Vector2Int fuLogicPos = WorldToLogicPosition(fu.transform.position);
+                        int fuColumn = fuLogicPos.x;
+                        // その列のマスを移動先候補から削除
+                        destinationCandidates.RemoveAll(pos => pos.x == fuColumn);
+                    }
+                }
+            }
+        }
 
         // PlayerPieceのロジック座標を取得
         Vector2Int playerPieceLogicPos = WorldToLogicPosition(playerPiece.transform.position);
@@ -526,7 +569,6 @@ public class GameManager : MonoBehaviour
     private void HandlePieceSelect()
     {
         // 自分の駒がクリックされた→移動先のクリック待ちへ遷移
-        // TODO: 持ち駒をクリックした際の処理を追加する
         if (_clickRaycaster.TryGetClickedPosition(out Vector3 clickedPosition, out var clickedPiece))
         {
             if(clickedPiece != null && clickedPiece._playerSide == _currentPlayerSide)
@@ -645,8 +687,10 @@ public class GameManager : MonoBehaviour
         if(isEnemyPiecePresent)
         {
             Debug.Log($"Captured piece: {occupyingPiece._pieceType} at {destination}");
-            // 駒のサイドを変更
+            // 駒の状態を変更
             occupyingPiece._playerSide = piece._playerSide;
+            occupyingPiece._isPromoted = false;
+            occupyingPiece._isMainStagePiece = false;
             // 駒を陣地に移動させる(仮に盤外の位置に移動させる)
             Vector3 offBoardPosition = new Vector3(
                 (piece._playerSide == PlayerSide.Bottom) ? _pieceStageBottomPosition.x : _pieceStageTopPosition.x,
@@ -661,7 +705,11 @@ public class GameManager : MonoBehaviour
         Vector2Int pieceLogicPos = WorldToLogicPosition(piece.transform.position);
         bool isInPromotionZone = (piece._playerSide == PlayerSide.Bottom && pieceLogicPos.y >= 6) ||
                                  (piece._playerSide == PlayerSide.Top && pieceLogicPos.y <= 2);
-        if(isInPromotionZone && !piece._isPromoted)
+        // 相手陣地に入っていて、まだ成っていなくて、今ターンに盤上に出た駒でなければ成る
+        // TODO: 後で成るか選択できるようにする & もう移動先がない場合(歩や香車、桂馬)は自動で成る
+        // TODO: 駒の種類によっては成れない場合もあるのでその処理も追加する
+        // TODO: 移動前に相手陣地にいる場合もなれるので追加する
+        if(isInPromotionZone && !piece._isPromoted && piece._isMainStagePiece)
         {
             // 成る処理を行う(後で成るか選択できるようにする)
             piece._isPromoted = true;
@@ -671,6 +719,7 @@ public class GameManager : MonoBehaviour
         }
 
         // 駒の移動完了後の処理
+        piece._isMainStagePiece = true;
         _isPieceMoving = false;
         _currentSelectedPiece = null;
         _currentSelectedPieceDestinationCandidates = null;
