@@ -545,13 +545,36 @@ public class GameManager : MonoBehaviour
         if (_currentSelectedPieceDestinationCandidates == null)
         {
             _currentSelectedPieceDestinationCandidates = GetMoveDestinationCandidates(_currentSelectedPiece, _currentPlayerSide);
-            Debug.Log($"Move destinations for {_currentSelectedPiece._pieceType}: {string.Join(", ", _currentSelectedPieceDestinationCandidates)}");
+            // 候補先がない場合、駒選択待ちへ遷移
+            if(_currentSelectedPieceDestinationCandidates.Length == 0)
+            {
+                Debug.Log("移動先の候補がありません。駒選択待ちに戻ります。");
+                _currentSequence = IngameSequence.WaitingPieceSelect;
+                _currentSelectedPiece = null;
+                _currentSelectedPieceDestinationCandidates = null;
+                return;
+            }
+            else
+            {            
+                Debug.Log($"Move destinations for {_currentSelectedPiece._pieceType}: {string.Join(", ", _currentSelectedPieceDestinationCandidates)}");
+                // 移動先候補のマスをハイライト表示
+                foreach(var pos in _currentSelectedPieceDestinationCandidates)
+                {
+                    ChangeCellMaterial(true, pos);
+                }
+            }
         }
 
         bool isClicked = _clickRaycaster.TryGetClickedPosition(out Vector3 clickedPosition, out var clickedPiece);
 
         // クリックされなければ何もしない
         if(!isClicked) return;
+
+        // 移動先候補のマスのハイライトを元に戻す
+        foreach(var pos in _currentSelectedPieceDestinationCandidates)
+        {
+            ChangeCellMaterial(false, pos);
+        }
 
         // クリックされた座標のロジック座標を取得
         Vector2Int logicPos = WorldToLogicPosition(clickedPosition);
