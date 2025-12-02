@@ -724,6 +724,14 @@ public class GameManager : MonoBehaviour
         if(isEnemyPiecePresent)
         {
             Debug.Log($"Captured piece: {occupyingPiece._pieceType} at {destination}");
+
+            // 王 or 玉なら試合終了
+            if(occupyingPiece._pieceType == PieceType.OU || occupyingPiece._pieceType == PieceType.GYOKU)
+            {
+                // TODO : UI表示とシーン切り替えを実装
+                Debug.Log($"Game Over! {piece._playerSide} wins!");
+            }
+
             // 駒の状態を変更
             occupyingPiece._playerSide = piece._playerSide;
             occupyingPiece._isPromoted = false;
@@ -752,7 +760,6 @@ public class GameManager : MonoBehaviour
                                  piece._pieceType == PieceType.KAKU ||
                                  piece._pieceType == PieceType.HISHA;
         // 移動の前後どちらかで相手陣地に入っていて、まだ成っていなくて、今ターンに盤上に出た駒でなければ成る
-        // TODO: 後で成るか選択できるようにする & もう移動先がない場合(歩や香車、桂馬)は自動で成る
         if(isInPromotionZone && !piece._isPromoted && piece._isMainStagePiece && isPromotablePiece)
         {
             // 成れる状態
