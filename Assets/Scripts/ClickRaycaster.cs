@@ -6,7 +6,13 @@ using UnityEngine;
 /// </summary>
 public class ClickRaycaster : MonoBehaviour
 {
-    // タグに応じて座標を返す関数. clickedPriceは取得できなければ null を返す.
+    /// <summary>
+    /// クリックした位置に特定のタグのオブジェクトがあればtrueを返し、そのオブジェクトの座標を返す関数.
+    /// タグが"Piece"の場合、clickedPieceを返す。取得できなければ null を返す.
+    /// </summary>
+    /// <param name="position">クリックした位置のワールド座標</param>
+    /// <param name="clickedPiece">取得したPiece</param>
+    /// <returns></returns>
     public bool TryGetClickedPosition(out Vector3 position, out Piece clickedPiece)
     {
         position = Vector3.zero;
@@ -43,7 +49,12 @@ public class ClickRaycaster : MonoBehaviour
         return isClickedMainStageCellOrPieceStage;
     }
 
-    // positionにPieceがあればそのPieceを返す関数
+    /// <summary>
+    /// 指定ワールド座標にPieceがあればtrueを返し、そのPieceをclickedPieceに格納する関数
+    /// </summary>
+    /// <param name="position">Pieceの取得を試みるワールド座標</param>
+    /// <param name="clickedPiece">取得したPiece</param>
+    /// <returns></returns>
     public bool TryGetPiece(Vector3 position, out Piece clickedPiece)
     {
         clickedPiece = null;
