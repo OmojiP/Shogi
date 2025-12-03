@@ -23,10 +23,22 @@ public class GameManager : MonoBehaviour
     // マスのロジック座標からワールド座標への変換テーブル
     private Vector3[,] _cellWorldPositions;
     // 駒台
+    // 上側の駒台
     [SerializeField] private Transform _pieceStageTop;
+    // 下側の駒台
     [SerializeField] private Transform _pieceStageBottom;
+    // 上側の駒台のワールド座標
     private Vector3 _pieceStageTopPosition;
+    // 下側の駒台のワールド座標
     private Vector3 _pieceStageBottomPosition;
+    // 駒の配置開始箇所のx座標オフセット
+    [SerializeField] private float _pieceStagePlaceStartOffsetX = -0.4f;
+    // 駒の配置箇所のx座標間隔
+    [SerializeField] private float _pieceStagePlaceSpanX = 0.1f;
+    // 上側の駒台の駒オブジェクト
+    private List<GameObject> _pieceStageTopPieces = new List<GameObject>();
+    // 下側の駒台の駒オブジェクト
+    private List<GameObject> _pieceStageBottomPieces = new List<GameObject>();
     // 歩のオブジェクト
     private List<Piece> _fuPieces = new List<Piece>();
 
@@ -760,14 +772,18 @@ public class GameManager : MonoBehaviour
             occupyingPiece._playerSide = piece._playerSide;
             occupyingPiece._isPromoted = false;
             occupyingPiece._isMainStagePiece = false;
-            // 駒を駒台に移動させる
-            // TODO: 駒が複数ある場合の配置場所の調整
-            Vector3 offBoardPosition = new Vector3(
-                (piece._playerSide == PlayerSide.Bottom) ? _pieceStageBottomPosition.x : _pieceStageTopPosition.x,
-                occupyingPiece.transform.position.y,
-                (piece._playerSide == PlayerSide.Bottom) ? _pieceStageBottomPosition.z : _pieceStageTopPosition.z
-            );
-            occupyingPiece.transform.position = offBoardPosition;
+
+            // 駒台に追加
+            if(piece._playerSide == PlayerSide.Bottom)
+            {
+                _pieceStageBottomPieces.Add(occupyingPiece.gameObject);
+            }
+            else
+            {
+                _pieceStageTopPieces.Add(occupyingPiece.gameObject);
+            }
+            // 駒台の駒を配置し直す
+            RearrangePieceStage(occupyingPiece._playerSide);
             // 駒の向きを変更
             occupyingPiece.transform.rotation = (piece._playerSide == PlayerSide.Bottom) ? Quaternion.Euler(0, 180, 0) : Quaternion.identity;
         }
@@ -828,6 +844,21 @@ public class GameManager : MonoBehaviour
             }
         }
 
+        // 駒が駒台から盤上に出た場合の処理
+        if(!piece._isMainStagePiece)
+        {
+            if(piece._playerSide == PlayerSide.Bottom)
+            {
+                _pieceStageBottomPieces.Remove(piece.gameObject);
+                RearrangePieceStage(PlayerSide.Bottom);
+            }
+            else
+            {
+                _pieceStageTopPieces.Remove(piece.gameObject);
+                RearrangePieceStage(PlayerSide.Top);
+            }
+        }
+
         // 駒の移動完了後の処理
         piece._isMainStagePiece = true;
         _isPieceMoving = false;
@@ -836,6 +867,26 @@ public class GameManager : MonoBehaviour
         _currentSelectedPieceDestination = new Vector2Int(-1, -1);
 
         _currentSequence = IngameSequence.TurnEnded;
+    }
+
+    // 駒台の配置を直す
+    private void RearrangePieceStage(PlayerSide playerSide)
+    {
+        List<GameObject> pieceStagePieces = (playerSide == PlayerSide.Bottom) ? _pieceStageBottomPieces : _pieceStageTopPieces;
+        Vector3 pieceStagePosition = (playerSide == PlayerSide.Bottom) ? _pieceStageBottomPosition : _pieceStageTopPosition;
+
+        for(int i = 0; i < pieceStagePieces.Count; i++)
+        {
+            GameObject p = pieceStagePieces[i];
+            // 駒の配置場所
+            var piecePlacePosX = pieceStagePosition.x + _pieceStagePlaceStartOffsetX + _pieceStagePlaceSpanX * i;
+            Vector3 offBoardPosition = new Vector3(
+                piecePlacePosX,
+                p.transform.position.y,
+                pieceStagePosition.z
+            );
+            p.transform.position = offBoardPosition;
+        }
     }
 
     // ターン終了処理
