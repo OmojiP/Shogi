@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
@@ -54,6 +56,15 @@ public class GameManager : MonoBehaviour
     // 成るかの確認のどちらをクリックしたか
     private bool _isPromotionConfirmYesClicked;
 
+    // 結果画面UI
+    [SerializeField] private GameObject _resultUI;
+    // 結果表示用テキスト
+    [SerializeField] private TextMeshProUGUI _resultText;
+    // タイトルに戻るボタン
+    [SerializeField] private Button _backToTitleButton;
+    // もう一度遊ぶボタン
+    [SerializeField] private Button _restartButton;
+
     // 現在のターン数
     private int _turnCount = 0;    
     // 現在のプレイヤーサイド
@@ -87,6 +98,19 @@ public class GameManager : MonoBehaviour
         {
             _isPromotionConfirmClicked = true;
             _isPromotionConfirmYesClicked = false;
+        });
+
+        // 結果画面UIの設定
+        _resultUI.SetActive(false);
+        _backToTitleButton.onClick.AddListener(() =>
+        {
+            // タイトルに戻る処理
+            SceneManager.LoadScene("Title");
+        });
+        _restartButton.onClick.AddListener(() =>
+        {
+            // もう一度遊ぶ処理
+            SceneManager.LoadScene("Ingame");
         });
 
         // 駒台の座標を取得
@@ -728,15 +752,16 @@ public class GameManager : MonoBehaviour
             // 王 or 玉なら試合終了
             if(occupyingPiece._pieceType == PieceType.OU || occupyingPiece._pieceType == PieceType.GYOKU)
             {
-                // TODO : UI表示とシーン切り替えを実装
-                Debug.Log($"Game Over! {piece._playerSide} wins!");
+                _resultText.text = $"{piece._playerSide} win!";
+                _resultUI.SetActive(true);
             }
 
             // 駒の状態を変更
             occupyingPiece._playerSide = piece._playerSide;
             occupyingPiece._isPromoted = false;
             occupyingPiece._isMainStagePiece = false;
-            // 駒を陣地に移動させる(仮に盤外の位置に移動させる)
+            // 駒を駒台に移動させる
+            // TODO: 駒が複数ある場合の配置場所の調整
             Vector3 offBoardPosition = new Vector3(
                 (piece._playerSide == PlayerSide.Bottom) ? _pieceStageBottomPosition.x : _pieceStageTopPosition.x,
                 occupyingPiece.transform.position.y,
