@@ -155,7 +155,7 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// 現在のプレイヤーサイド
     /// </summary>
-    private PlayerSide _currentPlayerSide = PlayerSide.Bottom;
+    private PlayerSide _currentPlayerSide = PlayerSide.BOTTOM;
     /// <summary>
     /// インゲームのシーケンス管理
     /// </summary>
@@ -366,10 +366,10 @@ public class GameManager : MonoBehaviour
                 Quaternion spawnRotation = (side == "Upper") ? Quaternion.identity : Quaternion.Euler(0, 180, 0); // 下側の駒は180度回転
                 var piece = Instantiate(piecePrefab, spawnPosition, spawnRotation, _pieceParentTransform);
                 // 駒のプレイヤーサイドを設定
-                piece.GetComponent<Piece>()._playerSide = (side == "Upper") ? PlayerSide.Top : PlayerSide.Bottom;
+                piece.GetComponent<Piece>().PlayerSide = (side == "Upper") ? PlayerSide.TOP : PlayerSide.BOTTOM;
 
                 // 歩のオブジェクトなら歩オブジェクトリストに追加
-                if(piece.GetComponent<Piece>()._pieceType == PieceType.FU)
+                if(piece.GetComponent<Piece>().PieceType == PieceType.FU)
                 {
                     _fuPieces.Add(piece.GetComponent<Piece>());
                 }
@@ -386,13 +386,13 @@ public class GameManager : MonoBehaviour
     /// <exception cref="System.NotImplementedException"></exception>
     private Vector2Int[] GetMoveDestinationCandidates(Piece playerPiece, PlayerSide playerSide)
     {
-        Debug.Log($"Getting move destinations for piece: {playerPiece._pieceType} at {WorldToLogicPosition(playerPiece.transform.position)}");
+        Debug.Log($"Getting move destinations for piece: {playerPiece.PieceType} at {WorldToLogicPosition(playerPiece.transform.position)}");
 
         // 移動先候補リスト
         List<Vector2Int> destinationCandidates = new List<Vector2Int>();
 
         // 持ち駒の場合
-        if (!playerPiece._isMainStagePiece)
+        if (!playerPiece.IsMainStagePiece)
         {
             // 基本的に全空きマスに移動可能
             // TODO: 打ち歩詰めは未対応
@@ -404,11 +404,11 @@ public class GameManager : MonoBehaviour
 
                     // 歩, 香車は1列目, 桂馬は2列目には打てない
                     bool isInvalidDropPosition = (
-                        (playerPiece._pieceType == PieceType.FU || playerPiece._pieceType == PieceType.KYOSHA) && 
-                        ((playerSide == PlayerSide.Bottom && y == BOARD_SIZE - 1) || (playerSide == PlayerSide.Top && y == 0))
+                        (playerPiece.PieceType == PieceType.FU || playerPiece.PieceType == PieceType.KYOSHA) && 
+                        ((playerSide == PlayerSide.BOTTOM && y == BOARD_SIZE - 1) || (playerSide == PlayerSide.TOP && y == 0))
                     ) || (
-                        playerPiece._pieceType == PieceType.KEIMA &&
-                        ((playerSide == PlayerSide.Bottom && y >= BOARD_SIZE - 2) || (playerSide == PlayerSide.Top && y <= 1))
+                        playerPiece.PieceType == PieceType.KEIMA &&
+                        ((playerSide == PlayerSide.BOTTOM && y >= BOARD_SIZE - 2) || (playerSide == PlayerSide.TOP && y <= 1))
                     );
 
                     // 打てない場所でなく、そのマスに駒が存在しない場合のみ追加
@@ -420,12 +420,12 @@ public class GameManager : MonoBehaviour
             }
 
             // 二歩となる座標を除外
-            if(playerPiece._pieceType == PieceType.FU)
+            if(playerPiece.PieceType == PieceType.FU)
             {
                 foreach(var fu in _fuPieces)
                 {
                     // 同じプレイヤーサイドのと金でない歩のみ対象
-                    if(fu._playerSide == playerSide && fu._isMainStagePiece && !fu._isPromoted)
+                    if(fu.PlayerSide == playerSide && fu.IsMainStagePiece && !fu.IsPromoted)
                     {
                         // 歩のいる列を取得
                         Vector2Int fuLogicPos = WorldToLogicPosition(fu.transform.position);
@@ -443,15 +443,15 @@ public class GameManager : MonoBehaviour
             Vector2Int playerPieceLogicPos = WorldToLogicPosition(playerPiece.transform.position);
 
             // 実際に扱う駒の種類を決定
-            PieceType actualPieceType = playerPiece._pieceType;
+            PieceType actualPieceType = playerPiece.PieceType;
 
             // 歩, 香車, 桂馬, 銀将 は成っていた場合, 金将として扱う
-            if(playerPiece._isPromoted)
+            if(playerPiece.IsPromoted)
             {
-                if(playerPiece._pieceType == PieceType.FU ||
-                playerPiece._pieceType == PieceType.KYOSHA ||
-                playerPiece._pieceType == PieceType.KEIMA ||
-                playerPiece._pieceType == PieceType.GIN)
+                if(playerPiece.PieceType == PieceType.FU ||
+                playerPiece.PieceType == PieceType.KYOSHA ||
+                playerPiece.PieceType == PieceType.KEIMA ||
+                playerPiece.PieceType == PieceType.GIN)
                 {
                     // 金将として扱う
                     actualPieceType = PieceType.KIN;
@@ -463,7 +463,7 @@ public class GameManager : MonoBehaviour
             {
                 case PieceType.FU:
                     // 歩は1マス前進のみ
-                    if(playerSide == PlayerSide.Bottom)
+                    if(playerSide == PlayerSide.BOTTOM)
                     {
                         destinationCandidates = new List<Vector2Int>
                         {
@@ -480,7 +480,7 @@ public class GameManager : MonoBehaviour
                     break;
                 case PieceType.KYOSHA:
                     // 香車は前方に何マスでも進める
-                    if(playerSide == PlayerSide.Bottom)
+                    if(playerSide == PlayerSide.BOTTOM)
                     {
                         for(int y = playerPieceLogicPos.y + 1; y < BOARD_SIZE; y++)
                         {
@@ -509,7 +509,7 @@ public class GameManager : MonoBehaviour
                     break;
                 case PieceType.KEIMA:
                     // 桂馬は2マス前方に1マス左右
-                    if(playerSide == PlayerSide.Bottom)
+                    if(playerSide == PlayerSide.BOTTOM)
                     {
                         destinationCandidates = new List<Vector2Int>
                         {
@@ -528,7 +528,7 @@ public class GameManager : MonoBehaviour
                     break;
                 case PieceType.GIN:
                     // 銀将は1マス前方と斜め前方、斜め後方に移動可能
-                    if(playerSide == PlayerSide.Bottom)
+                    if(playerSide == PlayerSide.BOTTOM)
                     {
                         destinationCandidates = new List<Vector2Int>
                         {
@@ -553,7 +553,7 @@ public class GameManager : MonoBehaviour
                     break;
                 case PieceType.KIN:
                     // 金将は1マス前方、左右、前方斜めに移動可能
-                    if(playerSide == PlayerSide.Bottom)
+                    if(playerSide == PlayerSide.BOTTOM)
                     {
                         destinationCandidates = new List<Vector2Int>
                         {
@@ -709,7 +709,7 @@ public class GameManager : MonoBehaviour
             }
 
             // 角行・飛車は成っていた場合、候補に王将・玉将の動きを追加
-            if(playerPiece._isPromoted)
+            if(playerPiece.IsPromoted)
             {
                 if(actualPieceType == PieceType.KAKU ||
                 actualPieceType == PieceType.HISHA)
@@ -733,7 +733,7 @@ public class GameManager : MonoBehaviour
             destinationCandidates.RemoveAll(pos => pos.x < 0 || pos.x >= BOARD_SIZE || pos.y < 0 || pos.y >= BOARD_SIZE);
 
             // 味方の駒がいるマスの候補を削除
-            destinationCandidates.RemoveAll(pos => IsCellOccupied(pos, out var occupyingPiece) && occupyingPiece._playerSide == playerSide);
+            destinationCandidates.RemoveAll(pos => IsCellOccupied(pos, out var occupyingPiece) && occupyingPiece.PlayerSide == playerSide);
         }
 
         Debug.Log($"候補座標: {string.Join(", ", destinationCandidates)}");
@@ -770,12 +770,12 @@ public class GameManager : MonoBehaviour
         if (_clickRaycaster.TryGetClickedPosition(out Vector3 clickedPosition, out var clickedPiece))
         {
             // 自分の駒がクリックされた場合, 処理する
-            if(clickedPiece != null && clickedPiece._playerSide == _currentPlayerSide)
+            if(clickedPiece != null && clickedPiece.PlayerSide == _currentPlayerSide)
             {
                 // 駒が選択された状態へ遷移
                 _currentSequence = IngameSequence.PieceDestinationSelect;
                 _currentSelectedPiece = clickedPiece;
-                Debug.Log($"Selected piece: {clickedPiece._pieceType} at {WorldToLogicPosition(clickedPosition)}");
+                Debug.Log($"Selected piece: {clickedPiece.PieceType} at {WorldToLogicPosition(clickedPosition)}");
             }
         }
     }
@@ -801,7 +801,7 @@ public class GameManager : MonoBehaviour
             }
             else
             {
-                Debug.Log($"Move destinations for {_currentSelectedPiece._pieceType}: {string.Join(", ", _currentSelectedPieceDestinationCandidates)}");
+                Debug.Log($"Move destinations for {_currentSelectedPiece.PieceType}: {string.Join(", ", _currentSelectedPieceDestinationCandidates)}");
                 // 移動先候補のマスをハイライト表示
                 foreach(var pos in _currentSelectedPieceDestinationCandidates)
                 {
@@ -836,7 +836,7 @@ public class GameManager : MonoBehaviour
             // 駒の移動先を設定
             _currentSelectedPieceDestination = logicPos;
 
-            Debug.Log($"Moving piece: {_currentSelectedPiece._pieceType} to {_currentSelectedPieceDestination}");
+            Debug.Log($"Moving piece: {_currentSelectedPiece.PieceType} to {_currentSelectedPieceDestination}");
 
             // 駒を移動中へ遷移
             _currentSequence = IngameSequence.PieceMoving;
@@ -880,7 +880,7 @@ public class GameManager : MonoBehaviour
 
         // targetPositionに相手の駒があるか確認
         _clickRaycaster.TryGetPiece(targetPosition, out var occupyingPiece);
-        bool isEnemyPiecePresent = occupyingPiece != null && occupyingPiece._playerSide != piece._playerSide;
+        bool isEnemyPiecePresent = occupyingPiece != null && occupyingPiece.PlayerSide != piece.PlayerSide;
 
         // 移動アニメーション(startingPositionからtargetPositionへ線形補間で_pieceMoveDuration秒かけて移動)
         float elapsedTime = 0f;
@@ -896,23 +896,23 @@ public class GameManager : MonoBehaviour
         // 移動先に相手の駒があれば、その駒を自分のサイドに書き換えて駒台に移動
         if(isEnemyPiecePresent)
         {
-            Debug.Log($"Captured piece: {occupyingPiece._pieceType} at {destination}");
+            Debug.Log($"Captured piece: {occupyingPiece.PieceType} at {destination}");
 
             // 王 or 玉なら試合終了
-            if(occupyingPiece._pieceType == PieceType.OU || occupyingPiece._pieceType == PieceType.GYOKU)
+            if(occupyingPiece.PieceType == PieceType.OU || occupyingPiece.PieceType == PieceType.GYOKU)
             {
                 // 勝利UIを表示
-                _resultText.text = $"{piece._playerSide} win!";
+                _resultText.text = $"{piece.PlayerSide} win!";
                 _resultUI.SetActive(true);
             }
 
             // 駒の状態を変更
-            occupyingPiece._playerSide = piece._playerSide;
-            occupyingPiece._isPromoted = false;
-            occupyingPiece._isMainStagePiece = false;
+            occupyingPiece.PlayerSide = piece.PlayerSide;
+            occupyingPiece.IsPromoted = false;
+            occupyingPiece.IsMainStagePiece = false;
 
             // 自分のサイドの駒台に追加
-            if(piece._playerSide == PlayerSide.Bottom)
+            if(piece.PlayerSide == PlayerSide.BOTTOM)
             {
                 _pieceStageBottomPieces.Add(occupyingPiece.gameObject);
             }
@@ -921,46 +921,46 @@ public class GameManager : MonoBehaviour
                 _pieceStageTopPieces.Add(occupyingPiece.gameObject);
             }
             // 駒台の駒を配置し直す
-            RearrangePieceStage(occupyingPiece._playerSide);
+            RearrangePieceStage(occupyingPiece.PlayerSide);
             // 駒の向きを変更
-            occupyingPiece.transform.rotation = (piece._playerSide == PlayerSide.Bottom) ? Quaternion.Euler(0, 180, 0) : Quaternion.identity;
+            occupyingPiece.transform.rotation = (piece.PlayerSide == PlayerSide.BOTTOM) ? Quaternion.Euler(0, 180, 0) : Quaternion.identity;
         }
 
         // 駒の成り判定
         Vector2Int previousLogicPos = WorldToLogicPosition(startingPosition); // 移動前のロジック座標
         Vector2Int pieceLogicPos = WorldToLogicPosition(piece.transform.position); // 移動後のロジック座標
         // 相手陣地に入っているかどうか
-        bool isInPromotionZone = (piece._playerSide == PlayerSide.Bottom && pieceLogicPos.y >= 6) ||
-                                 (piece._playerSide == PlayerSide.Top && pieceLogicPos.y <= 2) ||
-                                 (piece._playerSide == PlayerSide.Bottom && previousLogicPos.y >= 6) ||
-                                 (piece._playerSide == PlayerSide.Top && previousLogicPos.y <= 2);
+        bool isInPromotionZone = (piece.PlayerSide == PlayerSide.BOTTOM && pieceLogicPos.y >= 6) ||
+                                 (piece.PlayerSide == PlayerSide.TOP && pieceLogicPos.y <= 2) ||
+                                 (piece.PlayerSide == PlayerSide.BOTTOM && previousLogicPos.y >= 6) ||
+                                 (piece.PlayerSide == PlayerSide.TOP && previousLogicPos.y <= 2);
         // 成れる駒かどうか
-        bool isPromotablePiece = piece._pieceType == PieceType.FU ||
-                                 piece._pieceType == PieceType.KYOSHA ||
-                                 piece._pieceType == PieceType.KEIMA ||
-                                 piece._pieceType == PieceType.GIN ||
-                                 piece._pieceType == PieceType.KAKU ||
-                                 piece._pieceType == PieceType.HISHA;
+        bool isPromotablePiece = piece.PieceType == PieceType.FU ||
+                                 piece.PieceType == PieceType.KYOSHA ||
+                                 piece.PieceType == PieceType.KEIMA ||
+                                 piece.PieceType == PieceType.GIN ||
+                                 piece.PieceType == PieceType.KAKU ||
+                                 piece.PieceType == PieceType.HISHA;
         // 移動の前後どちらかで相手陣地に入っていて、まだ成っていなくて、今ターンに盤上に出た駒でなければ成る
-        if(isInPromotionZone && !piece._isPromoted && piece._isMainStagePiece && isPromotablePiece)
+        if(isInPromotionZone && !piece.IsPromoted && piece.IsMainStagePiece && isPromotablePiece)
         {
             // 成れる状態
 
             // 1列目の歩, 香車, 2列目の桂馬は強制的に成る
-            bool isForcedPromotion = ((piece._pieceType == PieceType.FU || piece._pieceType == PieceType.KYOSHA) &&
-                                     ((piece._playerSide == PlayerSide.Bottom && pieceLogicPos.y == 8) ||
-                                      (piece._playerSide == PlayerSide.Top && pieceLogicPos.y == 0)))
+            bool isForcedPromotion = ((piece.PieceType == PieceType.FU || piece.PieceType == PieceType.KYOSHA) &&
+                                     ((piece.PlayerSide == PlayerSide.BOTTOM && pieceLogicPos.y == 8) ||
+                                      (piece.PlayerSide == PlayerSide.TOP && pieceLogicPos.y == 0)))
                                      ||
-                                     (piece._pieceType == PieceType.KEIMA &&
-                                     ((piece._playerSide == PlayerSide.Bottom && pieceLogicPos.y >= 7) ||
-                                      (piece._playerSide == PlayerSide.Top && pieceLogicPos.y <= 1)));
+                                     (piece.PieceType == PieceType.KEIMA &&
+                                     ((piece.PlayerSide == PlayerSide.BOTTOM && pieceLogicPos.y >= 7) ||
+                                      (piece.PlayerSide == PlayerSide.TOP && pieceLogicPos.y <= 1)));
             if (isForcedPromotion)
             {
                 // 強制的に成る
-                piece._isPromoted = true;
+                piece.IsPromoted = true;
                 // 裏返す
                 piece.transform.Rotate(0, 0, 180);
-                Debug.Log($"Piece forced promoted: {piece._pieceType} at {pieceLogicPos}");
+                Debug.Log($"Piece forced promoted: {piece.PieceType} at {pieceLogicPos}");
             }
             else
             {
@@ -973,10 +973,10 @@ public class GameManager : MonoBehaviour
                 if (_isPromotionConfirmYesClicked)
                 {
                     // 成る処理を行う
-                    piece._isPromoted = true;
+                    piece.IsPromoted = true;
                     // 裏返す
                     piece.transform.Rotate(0, 0, 180);
-                    Debug.Log($"Piece promoted: {piece._pieceType} at {pieceLogicPos}");
+                    Debug.Log($"Piece promoted: {piece.PieceType} at {pieceLogicPos}");
                 }
                 // 成るか確認UIを非表示にしてフラグをリセット
                 _isPromotionConfirmClicked = false;
@@ -986,23 +986,23 @@ public class GameManager : MonoBehaviour
         }
 
         // 駒が駒台から盤上に出た場合の処理
-        if(!piece._isMainStagePiece)
+        if(!piece.IsMainStagePiece)
         {
             // 駒台から削除して配置を直す
-            if(piece._playerSide == PlayerSide.Bottom)
+            if(piece.PlayerSide == PlayerSide.BOTTOM)
             {
                 _pieceStageBottomPieces.Remove(piece.gameObject);
-                RearrangePieceStage(PlayerSide.Bottom);
+                RearrangePieceStage(PlayerSide.BOTTOM);
             }
             else
             {
                 _pieceStageTopPieces.Remove(piece.gameObject);
-                RearrangePieceStage(PlayerSide.Top);
+                RearrangePieceStage(PlayerSide.TOP);
             }
         }
 
         // 駒の移動完了後の処理
-        piece._isMainStagePiece = true;
+        piece.IsMainStagePiece = true;
         _isPieceMoving = false;
         _currentSelectedPiece = null;
         _currentSelectedPieceDestinationCandidates = null;
@@ -1018,8 +1018,8 @@ public class GameManager : MonoBehaviour
     private void RearrangePieceStage(PlayerSide playerSide)
     {
         // 駒を pieceStagePosition.x + _pieceStagePlaceStartOffsetX から _pieceStagePlaceSpanX 間隔で配置する
-        List<GameObject> pieceStagePieces = (playerSide == PlayerSide.Bottom) ? _pieceStageBottomPieces : _pieceStageTopPieces;
-        Vector3 pieceStagePosition = (playerSide == PlayerSide.Bottom) ? _pieceStageBottomPosition : _pieceStageTopPosition;
+        List<GameObject> pieceStagePieces = (playerSide == PlayerSide.BOTTOM) ? _pieceStageBottomPieces : _pieceStageTopPieces;
+        Vector3 pieceStagePosition = (playerSide == PlayerSide.BOTTOM) ? _pieceStageBottomPosition : _pieceStageTopPosition;
 
         for(int i = 0; i < pieceStagePieces.Count; i++)
         {
@@ -1043,7 +1043,7 @@ public class GameManager : MonoBehaviour
         // ターン数を増やす
         _turnCount++;
         // プレイヤーサイドを交代
-        _currentPlayerSide = (_currentPlayerSide == PlayerSide.Bottom) ? PlayerSide.Top : PlayerSide.Bottom;
+        _currentPlayerSide = (_currentPlayerSide == PlayerSide.BOTTOM) ? PlayerSide.TOP : PlayerSide.BOTTOM;
         
         Debug.Log($"Turn {_turnCount} ended. Next player: {_currentPlayerSide}");
 

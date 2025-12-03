@@ -8,19 +8,52 @@ public class Piece : MonoBehaviour
     /// <summary>
     /// 駒の種類
     /// </summary>
-    [SerializeField] public PieceType _pieceType;
+    [SerializeField] private PieceType _pieceType;
+    /// <summary>
+    /// 駒の種類
+    /// </summary>
+    public PieceType PieceType
+    {
+        get => _pieceType;
+        set => _pieceType = value;
+    }
     /// <summary>
     /// 成っているかどうか
     /// </summary>
-    [SerializeField] public bool _isPromoted = false;
+    [SerializeField] private bool _isPromoted = false;
+    /// <summary>
+    /// 成っているかどうか
+    /// </summary>
+    public bool IsPromoted
+    {
+        get => _isPromoted;
+        set => _isPromoted = value;
+    }
     /// <summary>
     /// メインステージの駒かどうか(持ち駒かどうか)
     /// </summary>
-    [SerializeField] public bool _isMainStagePiece = true;
+    [SerializeField] private bool _isMainStagePiece = true;
+    /// <summary>
+    /// メインステージの駒かどうか(持ち駒かどうか)
+    /// </summary>
+    public bool IsMainStagePiece
+    {
+        get => _isMainStagePiece;
+        set => _isMainStagePiece = value;
+    }
     /// <summary>
     /// プレイヤーサイド
     /// </summary>
-    [SerializeField] public PlayerSide _playerSide;
+    [SerializeField] private PlayerSide _playerSide;
+    /// <summary>
+    /// プレイヤーサイド
+    /// </summary>
+    public PlayerSide PlayerSide
+    {
+        get => _playerSide;
+        set => _playerSide = value;
+}
+
 }
 
 /// <summary>
@@ -74,9 +107,9 @@ public enum PlayerSide
     /// <summary>
     /// 下側プレイヤー
     /// </summary>
-    Bottom = 0,
+    BOTTOM = 0,
     /// <summary>
     /// 上側プレイヤー
     /// </summary>
-    Top = 9,
+    TOP = 9,
 }
