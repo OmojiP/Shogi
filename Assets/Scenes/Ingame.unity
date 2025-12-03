@@ -1683,7 +1683,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -1827,7 +1827,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -2379,6 +2379,8 @@ MonoBehaviour:
   _cellSpacing: 0.1
   _pieceStageTop: {fileID: 810260715}
   _pieceStageBottom: {fileID: 568030812}
+  _pieceStagePlaceStartOffsetX: -0.4
+  _pieceStagePlaceSpanX: 0.1
   _highlightCellMaterial: {fileID: 2100000, guid: 83acb167799c4ab4aab044d8a3efc3ad, type: 2}
   _defaultCellMaterial: {fileID: 2100000, guid: 1ec3192397ef8bcd39f8c0462b913f5b, type: 2}
   _piecePrefabs:
