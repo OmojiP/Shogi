@@ -39,6 +39,10 @@ public class GameManager : MonoBehaviour
     /// マスのロジック座標からワールド座標への変換テーブル
     /// </summary>
     private Vector3[,] _cellWorldPositions;
+    /// <summary>
+    /// 将棋盤上の駒情報配列(空きマスはnull)
+    /// </summary>
+    private Piece[,] _pieces;
     
     // 駒台
     /// <summary>
@@ -91,7 +95,7 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// 将棋駒のプレハブ配列 : 0: 歩, 1: 香車, 2: 桂馬, 3: 銀将, 4: 金将, 5: 角行, 6: 飛車, 7: 王将, 8: 玉将
     /// </summary>
-    [SerializeField] private GameObject[] _piecePrefabs;
+    [SerializeField] private Piece[] _piecePrefabs;
     /// <summary>
     /// 駒の親オブジェクト
     /// </summary>
@@ -332,6 +336,9 @@ public class GameManager : MonoBehaviour
     /// <param name="initialPlacement">初期配置データのテキストアセット</param>
     private void SpawnPieces(TextAsset initialPlacement)
     {
+        // 将棋盤配列の初期化
+        _pieces = new Piece[BOARD_SIZE, BOARD_SIZE];
+
         // 初期配置データの解析
         string[] lines = initialPlacement.text.Split(new[] { '\r', '\n' }, System.StringSplitOptions.RemoveEmptyEntries);
         foreach (string line in lines)
@@ -345,7 +352,7 @@ public class GameManager : MonoBehaviour
             string side = tokens[3].Trim();
 
             // 駒の生成(_piecePrefabs配列から駒名に対応するプレハブを取得)
-            GameObject piecePrefab = null;
+            Piece piecePrefab = null;
             switch (pieceName)
             {
                 case "FU": piecePrefab = _piecePrefabs[0]; break;
@@ -366,12 +373,15 @@ public class GameManager : MonoBehaviour
                 Quaternion spawnRotation = (side == "Upper") ? Quaternion.identity : Quaternion.Euler(0, 180, 0); // 下側の駒は180度回転
                 var piece = Instantiate(piecePrefab, spawnPosition, spawnRotation, _pieceParentTransform);
                 // 駒のプレイヤーサイドを設定
-                piece.GetComponent<Piece>().PlayerSide = (side == "Upper") ? PlayerSide.TOP : PlayerSide.BOTTOM;
+                piece.PlayerSide = (side == "Upper") ? PlayerSide.TOP : PlayerSide.BOTTOM;
+
+                // 盤上の駒情報配列に登録
+                _pieces[x, y] = piece;
 
                 // 歩のオブジェクトなら歩オブジェクトリストに追加
-                if(piece.GetComponent<Piece>().PieceType == PieceType.FU)
+                if(piece.PieceType == PieceType.FU)
                 {
-                    _fuPieces.Add(piece.GetComponent<Piece>());
+                    _fuPieces.Add(piece);
                 }
             }
         }
@@ -755,9 +765,10 @@ public class GameManager : MonoBehaviour
             return false;
         }
 
-        // ロジック座標からワールド座標を取得し、その座標に駒が存在するかを判定
-        Vector3 cellWorldPos = _cellWorldPositions[logicPos.x, logicPos.y];
-        _clickRaycaster.TryGetPiece(cellWorldPos, out occupyingPiece);
+        // 指定したロジック座標に駒が存在すれば取得(存在しない場合null)
+        occupyingPiece = _pieces[logicPos.x, logicPos.y];
+
+        // 駒が存在する場合はtrue、存在しない場合はfalseを返す
         return occupyingPiece != null;
     }
 
@@ -879,7 +890,7 @@ public class GameManager : MonoBehaviour
         Vector3 targetPosition = _cellWorldPositions[destination.x, destination.y]+ Vector3.up * 0.01f;
 
         // targetPositionに相手の駒があるか確認
-        _clickRaycaster.TryGetPiece(targetPosition, out var occupyingPiece);
+        Piece occupyingPiece = _pieces[destination.x, destination.y];
         bool isEnemyPiecePresent = occupyingPiece != null && occupyingPiece.PlayerSide != piece.PlayerSide;
 
         // 移動アニメーション(startingPositionからtargetPositionへ線形補間で_pieceMoveDuration秒かけて移動)
@@ -891,6 +902,7 @@ public class GameManager : MonoBehaviour
             elapsedTime += Time.deltaTime;
             yield return null;
         }
+        // 最終的に正確な位置に設定
         piece.transform.position = targetPosition;
 
         // 移動先に相手の駒があれば、その駒を自分のサイドに書き換えて駒台に移動
@@ -924,6 +936,9 @@ public class GameManager : MonoBehaviour
             RearrangePieceStage(occupyingPiece.PlayerSide);
             // 駒の向きを変更
             occupyingPiece.transform.rotation = (piece.PlayerSide == PlayerSide.BOTTOM) ? Quaternion.Euler(0, 180, 0) : Quaternion.identity;
+
+            // 将棋盤配列から駒を削除
+            _pieces[destination.x, destination.y] = null;
         }
 
         // 駒の成り判定
@@ -1007,6 +1022,10 @@ public class GameManager : MonoBehaviour
         _currentSelectedPiece = null;
         _currentSelectedPieceDestinationCandidates = null;
         _currentSelectedPieceDestination = new Vector2Int(-1, -1);
+
+        // 将棋盤配列の更新
+        _pieces[previousLogicPos.x, previousLogicPos.y] = null;
+        _pieces[destination.x, destination.y] = piece;
 
         _currentSequence = IngameSequence.TurnEnded;
     }
