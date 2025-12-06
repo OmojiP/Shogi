@@ -51,33 +51,4 @@ public class ClickRaycaster : MonoBehaviour
 
         return isClickedMainStageCellOrPieceStage;
     }
-
-    /// <summary>
-    /// 指定ワールド座標にPieceがあればtrueを返し、そのPieceをclickedPieceに格納する関数
-    /// </summary>
-    /// <param name="position">Pieceの取得を試みるワールド座標</param>
-    /// <param name="clickedPiece">取得したPiece</param>
-    /// <returns></returns>
-    public bool TryGetPiece(Vector3 position, out Piece clickedPiece)
-    {
-        // outパラメータの初期化
-        clickedPiece = null;
-        
-        // Ray を指定ワールド座標の上方から下方向に飛ばし、全ての当たり判定を取得する
-        Ray ray = new Ray(position + Vector3.up * 10f, Vector3.down);
-        RaycastHit[] hits = Physics.RaycastAll(ray);
-        for(int i = 0; i < hits.Length; i++)
-        {
-            RaycastHit hit = hits[i];
-            // Pieceタグのオブジェクトがあれば返す
-            if(hit.collider.CompareTag("Piece"))
-            {
-                // Pieceコンポーネントを取得
-                clickedPiece = hit.collider.GetComponent<Piece>();
-                return true;
-            }
-        }
-
-        return false;
-    }
 }
