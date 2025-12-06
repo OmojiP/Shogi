@@ -72,6 +72,14 @@ PrefabInstance:
       propertyPath: m_TagString
       value: Piece
       objectReference: {fileID: 0}
+    - target: {fileID: 1151388028547126963, guid: 7b06b5849d3bbb78dbcde47c87bdefa5, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.125
+      objectReference: {fileID: 0}
+    - target: {fileID: 1151388028547126963, guid: 7b06b5849d3bbb78dbcde47c87bdefa5, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.118
+      objectReference: {fileID: 0}
     - target: {fileID: 8164078558771037576, guid: 7b06b5849d3bbb78dbcde47c87bdefa5, type: 3}
       propertyPath: m_TagString
       value: Piece
@@ -105,6 +113,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _pieceType: 0
+  _isPromoted: 0
+  _isMainStagePiece: 1
   _playerSide: 0
 --- !u!65 &6122578403825622636
 BoxCollider:
@@ -125,5 +135,5 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.94, y: 0.39, z: 2.49}
-  m_Center: {x: 0, y: 0.14, z: -0.18}
+  m_Size: {x: 1.94, y: 0.4308939, z: 2.387092}
+  m_Center: {x: -0, y: 0.02498882, z: -0.04769021}
