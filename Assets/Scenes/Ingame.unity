@@ -2384,15 +2384,15 @@ MonoBehaviour:
   _highlightCellMaterial: {fileID: 2100000, guid: 83acb167799c4ab4aab044d8a3efc3ad, type: 2}
   _defaultCellMaterial: {fileID: 2100000, guid: 1ec3192397ef8bcd39f8c0462b913f5b, type: 2}
   _piecePrefabs:
-  - {fileID: 8162320124537230092, guid: 62da2d02d8fdaf11cbe5fc0520196d83, type: 3}
-  - {fileID: 8162320124537230092, guid: b5edff1313994d390aa5c3ec1b4f2529, type: 3}
-  - {fileID: 8162320124537230092, guid: 478f77b2c7b2a28d990f68e10374a8af, type: 3}
-  - {fileID: 8162320124537230092, guid: 7f2c0d554f11b6c988dddadbd9420229, type: 3}
-  - {fileID: 8162320124537230092, guid: 81f84a540c401ae689eb78f397fb8ce2, type: 3}
-  - {fileID: 8162320124537230092, guid: aef4a8c9523e6c020a3499bb7809b4fa, type: 3}
-  - {fileID: 8162320124537230092, guid: 0a06e39ca854f35978ef7f6f626130d5, type: 3}
-  - {fileID: 8162320124537230092, guid: a39a2075c8a404b959da2e5b70915303, type: 3}
-  - {fileID: 8162320124537230092, guid: 8069f4d380435c270b1a971996942353, type: 3}
+  - {fileID: 9157230680447122236, guid: 62da2d02d8fdaf11cbe5fc0520196d83, type: 3}
+  - {fileID: 9157230680447122236, guid: b5edff1313994d390aa5c3ec1b4f2529, type: 3}
+  - {fileID: 9157230680447122236, guid: 478f77b2c7b2a28d990f68e10374a8af, type: 3}
+  - {fileID: 9157230680447122236, guid: 7f2c0d554f11b6c988dddadbd9420229, type: 3}
+  - {fileID: 9157230680447122236, guid: 81f84a540c401ae689eb78f397fb8ce2, type: 3}
+  - {fileID: 9157230680447122236, guid: aef4a8c9523e6c020a3499bb7809b4fa, type: 3}
+  - {fileID: 9157230680447122236, guid: 0a06e39ca854f35978ef7f6f626130d5, type: 3}
+  - {fileID: 9157230680447122236, guid: a39a2075c8a404b959da2e5b70915303, type: 3}
+  - {fileID: 9157230680447122236, guid: 8069f4d380435c270b1a971996942353, type: 3}
   _pieceParentTransform: {fileID: 1417342151}
   _initialPlacementTextAsset: {fileID: 4900000, guid: 1014560bea0467772af07a72650397cc, type: 3}
   _clickRaycaster: {fileID: 1953021666}
