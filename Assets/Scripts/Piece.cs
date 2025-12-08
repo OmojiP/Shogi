@@ -24,6 +24,18 @@ public class Piece : MonoBehaviour
     /// </summary>
     public bool IsPromoted => _isPromoted;
     /// <summary>
+    /// ロジック座標
+    /// </summary>
+    private Vector2Int _logicPos = new Vector2Int(-1, -1);
+    /// <summary>
+    /// ロジック座標
+    /// </summary>
+    public Vector2Int LogicPos
+    {
+        get => _logicPos;
+        set => _logicPos = value;
+    }
+    /// <summary>
     /// メインステージの駒かどうか(持ち駒かどうか)
     /// </summary>
     [SerializeField] private bool _isMainStagePiece = true;
@@ -39,15 +51,6 @@ public class Piece : MonoBehaviour
     /// プレイヤーサイド
     /// </summary>
     public PlayerSide PlayerSide => _playerSide;
-
-    /// <summary>
-    /// 駒のロジック上の座標
-    /// </summary>
-    private Vector2Int _logicPos;
-    /// <summary>
-    /// 駒のロジック上の座標
-    /// </summary>
-    public Vector2Int LogicPos => _logicPos;
 
     /// <summary>
     /// 駒を何秒で移動させるか
