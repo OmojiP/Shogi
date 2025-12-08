@@ -39,6 +39,10 @@ public class GameManager : MonoBehaviour
     /// マスのロジック座標からワールド座標への変換テーブル
     /// </summary>
     private Vector3[,] _cellWorldPositions;
+    /// <summary>
+    /// 将棋盤上の駒情報配列(空きマスはnull)
+    /// </summary>
+    private Piece[,] _pieces;
     
     // 駒台
     /// <summary>
@@ -76,7 +80,7 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// 歩のオブジェクト
     /// </summary>
-    private List<Piece> _fuPieces = new List<Piece>();
+    private Piece[] _fuPieces;
 
     // マテリアル
     /// <summary>
@@ -91,7 +95,7 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// 将棋駒のプレハブ配列 : 0: 歩, 1: 香車, 2: 桂馬, 3: 銀将, 4: 金将, 5: 角行, 6: 飛車, 7: 王将, 8: 玉将
     /// </summary>
-    [SerializeField] private GameObject[] _piecePrefabs;
+    [SerializeField] private Piece[] _piecePrefabs;
     /// <summary>
     /// 駒の親オブジェクト
     /// </summary>
@@ -332,6 +336,12 @@ public class GameManager : MonoBehaviour
     /// <param name="initialPlacement">初期配置データのテキストアセット</param>
     private void SpawnPieces(TextAsset initialPlacement)
     {
+        // 将棋盤配列の初期化
+        _pieces = new Piece[BOARD_SIZE, BOARD_SIZE];
+
+        // 歩オブジェクトリストの初期化
+        List<Piece> fuPieces = new List<Piece>();
+
         // 初期配置データの解析
         string[] lines = initialPlacement.text.Split(new[] { '\r', '\n' }, System.StringSplitOptions.RemoveEmptyEntries);
         foreach (string line in lines)
@@ -345,7 +355,7 @@ public class GameManager : MonoBehaviour
             string side = tokens[3].Trim();
 
             // 駒の生成(_piecePrefabs配列から駒名に対応するプレハブを取得)
-            GameObject piecePrefab = null;
+            Piece piecePrefab = null;
             switch (pieceName)
             {
                 case "FU": piecePrefab = _piecePrefabs[0]; break;
@@ -366,399 +376,22 @@ public class GameManager : MonoBehaviour
                 Quaternion spawnRotation = (side == "Upper") ? Quaternion.identity : Quaternion.Euler(0, 180, 0); // 下側の駒は180度回転
                 var piece = Instantiate(piecePrefab, spawnPosition, spawnRotation, _pieceParentTransform);
                 // 駒のプレイヤーサイドを設定
-                piece.GetComponent<Piece>().PlayerSide = (side == "Upper") ? PlayerSide.TOP : PlayerSide.BOTTOM;
+                piece.PlayerSide = (side == "Upper") ? PlayerSide.TOP : PlayerSide.BOTTOM;
+                // 駒のロジック座標を設定
+                piece.LogicPos = new Vector2Int(x, y);
+
+                // 盤上の駒情報配列に登録
+                _pieces[x, y] = piece;
 
                 // 歩のオブジェクトなら歩オブジェクトリストに追加
-                if(piece.GetComponent<Piece>().PieceType == PieceType.FU)
+                if(piece.PieceType == PieceType.FU)
                 {
-                    _fuPieces.Add(piece.GetComponent<Piece>());
+                    fuPieces.Add(piece);
                 }
             }
         }
-    }
-
-    /// <summary>
-    /// 移動先候補を取得
-    /// </summary>
-    /// <param name="playerPiece">移動させる駒</param>
-    /// <param name="playerSide">駒のプレイヤーサイド</param>
-    /// <returns>移動先候補のロジック座標配列</returns>
-    /// <exception cref="System.NotImplementedException"></exception>
-    private Vector2Int[] GetMoveDestinationCandidates(Piece playerPiece, PlayerSide playerSide)
-    {
-        Debug.Log($"Getting move destinations for piece: {playerPiece.PieceType} at {WorldToLogicPosition(playerPiece.transform.position)}");
-
-        // 移動先候補リスト
-        List<Vector2Int> destinationCandidates = new List<Vector2Int>();
-
-        // 持ち駒の場合
-        if (!playerPiece.IsMainStagePiece)
-        {
-            // 基本的に全空きマスに移動可能
-            // TODO: 打ち歩詰めは未対応
-            for (int x = 0; x < BOARD_SIZE; x++)
-            {
-                for (int y = 0; y < BOARD_SIZE; y++)
-                {
-                    Vector2Int pos = new Vector2Int(x, y);
-
-                    // 歩, 香車は1列目, 桂馬は2列目には打てない
-                    bool isInvalidDropPosition = (
-                        (playerPiece.PieceType == PieceType.FU || playerPiece.PieceType == PieceType.KYOSHA) && 
-                        ((playerSide == PlayerSide.BOTTOM && y == BOARD_SIZE - 1) || (playerSide == PlayerSide.TOP && y == 0))
-                    ) || (
-                        playerPiece.PieceType == PieceType.KEIMA &&
-                        ((playerSide == PlayerSide.BOTTOM && y >= BOARD_SIZE - 2) || (playerSide == PlayerSide.TOP && y <= 1))
-                    );
-
-                    // 打てない場所でなく、そのマスに駒が存在しない場合のみ追加
-                    if(!isInvalidDropPosition && !IsCellOccupied(pos, out var occupyingPiece))
-                    {
-                        destinationCandidates.Add(pos);
-                    }
-                }
-            }
-
-            // 二歩となる座標を除外
-            if(playerPiece.PieceType == PieceType.FU)
-            {
-                foreach(var fu in _fuPieces)
-                {
-                    // 同じプレイヤーサイドのと金でない歩のみ対象
-                    if(fu.PlayerSide == playerSide && fu.IsMainStagePiece && !fu.IsPromoted)
-                    {
-                        // 歩のいる列を取得
-                        Vector2Int fuLogicPos = WorldToLogicPosition(fu.transform.position);
-                        int fuColumn = fuLogicPos.x;
-                        // その列のマスを移動先候補から削除
-                        destinationCandidates.RemoveAll(pos => pos.x == fuColumn);
-                    }
-                }
-            }
-        }
-        // 盤上の駒の場合
-        else
-        {
-            // PlayerPieceのロジック座標を取得
-            Vector2Int playerPieceLogicPos = WorldToLogicPosition(playerPiece.transform.position);
-
-            // 実際に扱う駒の種類を決定
-            PieceType actualPieceType = playerPiece.PieceType;
-
-            // 歩, 香車, 桂馬, 銀将 は成っていた場合, 金将として扱う
-            if(playerPiece.IsPromoted)
-            {
-                if(playerPiece.PieceType == PieceType.FU ||
-                playerPiece.PieceType == PieceType.KYOSHA ||
-                playerPiece.PieceType == PieceType.KEIMA ||
-                playerPiece.PieceType == PieceType.GIN)
-                {
-                    // 金将として扱う
-                    actualPieceType = PieceType.KIN;
-                }
-            }
-
-            // 駒の種類ごとに移動先候補を取得(範囲外チェックと角龍の成の扱いは後ろでまとめて行う)
-            switch (actualPieceType)
-            {
-                case PieceType.FU:
-                    // 歩は1マス前進のみ
-                    if(playerSide == PlayerSide.BOTTOM)
-                    {
-                        destinationCandidates = new List<Vector2Int>
-                        {
-                            new Vector2Int(playerPieceLogicPos.x, playerPieceLogicPos.y + 1)
-                        };
-                    }
-                    else // PlayerSide.Top
-                    {
-                        destinationCandidates = new List<Vector2Int>
-                        {
-                            new Vector2Int(playerPieceLogicPos.x, playerPieceLogicPos.y - 1)
-                        };
-                    }       
-                    break;
-                case PieceType.KYOSHA:
-                    // 香車は前方に何マスでも進める
-                    if(playerSide == PlayerSide.BOTTOM)
-                    {
-                        for(int y = playerPieceLogicPos.y + 1; y < BOARD_SIZE; y++)
-                        {
-                            // 候補に追加
-                            destinationCandidates.Add(new Vector2Int(playerPieceLogicPos.x, y));
-                            // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
-                            if(IsCellOccupied(new Vector2Int(playerPieceLogicPos.x, y), out var occupyingPiece))
-                            {
-                                break;   
-                            }
-                        }
-                    }
-                    else // PlayerSide.Top
-                    {
-                        for(int y = playerPieceLogicPos.y - 1; y >= 0; y--)
-                        {
-                            // 候補に追加
-                            destinationCandidates.Add(new Vector2Int(playerPieceLogicPos.x, y));
-                            // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
-                            if(IsCellOccupied(new Vector2Int(playerPieceLogicPos.x, y), out var occupyingPiece))
-                            {
-                                break;
-                            }
-                        }
-                    }
-                    break;
-                case PieceType.KEIMA:
-                    // 桂馬は2マス前方に1マス左右
-                    if(playerSide == PlayerSide.BOTTOM)
-                    {
-                        destinationCandidates = new List<Vector2Int>
-                        {
-                            new Vector2Int(playerPieceLogicPos.x - 1, playerPieceLogicPos.y + 2),
-                            new Vector2Int(playerPieceLogicPos.x + 1, playerPieceLogicPos.y + 2)
-                        };
-                    }
-                    else // PlayerSide.Top
-                    {
-                        destinationCandidates = new List<Vector2Int>
-                        {
-                            new Vector2Int(playerPieceLogicPos.x - 1, playerPieceLogicPos.y - 2),
-                            new Vector2Int(playerPieceLogicPos.x + 1, playerPieceLogicPos.y - 2)
-                        };
-                    }
-                    break;
-                case PieceType.GIN:
-                    // 銀将は1マス前方と斜め前方、斜め後方に移動可能
-                    if(playerSide == PlayerSide.BOTTOM)
-                    {
-                        destinationCandidates = new List<Vector2Int>
-                        {
-                            new Vector2Int(playerPieceLogicPos.x, playerPieceLogicPos.y + 1),
-                            new Vector2Int(playerPieceLogicPos.x - 1, playerPieceLogicPos.y + 1),
-                            new Vector2Int(playerPieceLogicPos.x + 1, playerPieceLogicPos.y + 1),
-                            new Vector2Int(playerPieceLogicPos.x - 1, playerPieceLogicPos.y - 1),
-                            new Vector2Int(playerPieceLogicPos.x + 1, playerPieceLogicPos.y - 1)
-                        };
-                    }
-                    else // PlayerSide.Top
-                    {
-                        destinationCandidates = new List<Vector2Int>
-                        {
-                            new Vector2Int(playerPieceLogicPos.x, playerPieceLogicPos.y - 1),
-                            new Vector2Int(playerPieceLogicPos.x - 1, playerPieceLogicPos.y - 1),
-                            new Vector2Int(playerPieceLogicPos.x + 1, playerPieceLogicPos.y - 1),
-                            new Vector2Int(playerPieceLogicPos.x - 1, playerPieceLogicPos.y + 1),
-                            new Vector2Int(playerPieceLogicPos.x + 1, playerPieceLogicPos.y + 1)
-                        };
-                    }
-                    break;
-                case PieceType.KIN:
-                    // 金将は1マス前方、左右、前方斜めに移動可能
-                    if(playerSide == PlayerSide.BOTTOM)
-                    {
-                        destinationCandidates = new List<Vector2Int>
-                        {
-                            new Vector2Int(playerPieceLogicPos.x, playerPieceLogicPos.y + 1),
-                            new Vector2Int(playerPieceLogicPos.x - 1, playerPieceLogicPos.y),
-                            new Vector2Int(playerPieceLogicPos.x + 1, playerPieceLogicPos.y),
-                            new Vector2Int(playerPieceLogicPos.x - 1, playerPieceLogicPos.y + 1),
-                            new Vector2Int(playerPieceLogicPos.x, playerPieceLogicPos.y - 1),
-                            new Vector2Int(playerPieceLogicPos.x + 1, playerPieceLogicPos.y + 1)
-                        };
-                    }
-                    else // PlayerSide.Top
-                    {
-                        destinationCandidates = new List<Vector2Int>
-                        {
-                            new Vector2Int(playerPieceLogicPos.x, playerPieceLogicPos.y - 1),
-                            new Vector2Int(playerPieceLogicPos.x - 1, playerPieceLogicPos.y),
-                            new Vector2Int(playerPieceLogicPos.x + 1, playerPieceLogicPos.y),
-                            new Vector2Int(playerPieceLogicPos.x - 1, playerPieceLogicPos.y - 1),
-                            new Vector2Int(playerPieceLogicPos.x, playerPieceLogicPos.y + 1),
-                            new Vector2Int(playerPieceLogicPos.x + 1, playerPieceLogicPos.y - 1)
-                        };
-                    }
-                    break;
-                case PieceType.KAKU:
-                    // 角行は斜め方向に何マスでも移動可能
-                    // 斜めに追加していき、味方がいる場合はそのマスの前まで、相手がいる場合はそのマスまで追加して止める
-                    // 左上
-                    for(int  distance = 1; distance < BOARD_SIZE; distance++)
-                    {
-                        Vector2Int p0 = new Vector2Int(playerPieceLogicPos.x + distance, playerPieceLogicPos.y + distance);
-
-                        // 候補に追加
-                        destinationCandidates.Add(p0);
-                        // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
-                        if(IsCellOccupied(p0, out var occupyingPiece))
-                        {
-                            break; 
-                        }
-                    }
-                    // 右上
-                    for(int  distance = 1; distance < BOARD_SIZE; distance++)
-                    {
-                        Vector2Int p1 = new Vector2Int(playerPieceLogicPos.x - distance, playerPieceLogicPos.y + distance);
-                        
-                        // 候補に追加
-                        destinationCandidates.Add(p1);
-                        // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
-                        if(IsCellOccupied(p1, out var occupyingPiece))
-                        {
-                            break;
-                        }
-                    }
-                    // 左下
-                    for(int  distance = 1; distance < BOARD_SIZE; distance++)
-                    {
-                        Vector2Int p2 = new Vector2Int(playerPieceLogicPos.x + distance, playerPieceLogicPos.y - distance);
-
-                        // 候補に追加
-                        destinationCandidates.Add(p2);
-                        // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
-                        if(IsCellOccupied(p2, out var occupyingPiece))
-                        {
-                            break;
-                        }
-                    }
-                    // 右下
-                    for(int  distance = 1; distance < BOARD_SIZE; distance++)
-                    {
-                        Vector2Int p3 = new Vector2Int(playerPieceLogicPos.x - distance, playerPieceLogicPos.y - distance);
-
-                        // 候補に追加
-                        destinationCandidates.Add(p3);
-                        // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
-                        if(IsCellOccupied(p3, out var occupyingPiece))
-                        {
-                            break;
-                        }
-                    }
-                    break;
-                case PieceType.HISHA:
-                    // 飛車は縦横方向に何マスでも移動可能
-                    // 縦横に追加していき、味方がいる場合はそのマスの前まで、相手がいる場合はそのマスまで追加して止める
-                    // 上
-                    for(int  distance = 1; distance < BOARD_SIZE; distance++)
-                    {
-                        Vector2Int p0 = new Vector2Int(playerPieceLogicPos.x, playerPieceLogicPos.y + distance);
-
-                        // 候補に追加
-                        destinationCandidates.Add(p0);
-                        // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
-                        if(IsCellOccupied(p0, out var occupyingPiece))
-                        {
-                            break;
-                        }
-                    }
-                    // 下
-                    for(int  distance = 1; distance < BOARD_SIZE; distance++)
-                    {
-                        Vector2Int p1 = new Vector2Int(playerPieceLogicPos.x, playerPieceLogicPos.y - distance);
-
-                        // 候補に追加
-                        destinationCandidates.Add(p1);
-                        // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
-                        if(IsCellOccupied(p1, out var occupyingPiece))
-                        {
-                            break;
-                        }
-                    }
-                    // 左
-                    for(int  distance = 1; distance < BOARD_SIZE; distance++)
-                    {
-                        Vector2Int p2 = new Vector2Int(playerPieceLogicPos.x - distance, playerPieceLogicPos.y);
-
-                        // 候補に追加
-                        destinationCandidates.Add(p2);
-                        // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
-                        if(IsCellOccupied(p2, out var occupyingPiece))
-                        {
-                            break;
-                        }
-                    }
-                    // 右
-                    for(int  distance = 1; distance < BOARD_SIZE; distance++)
-                    {
-                        Vector2Int p3 = new Vector2Int(playerPieceLogicPos.x + distance, playerPieceLogicPos.y);
-
-                        // 候補に追加
-                        destinationCandidates.Add(p3);
-                        // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
-                        if(IsCellOccupied(p3, out var occupyingPiece))
-                        {
-                            break;
-                        }
-                    }
-                    break;
-                case PieceType.OU or PieceType.GYOKU:
-                    // 王将・玉将は1マス八方に移動可能
-                    destinationCandidates = new List<Vector2Int>
-                    {
-                        new Vector2Int(playerPieceLogicPos.x - 1, playerPieceLogicPos.y),
-                        new Vector2Int(playerPieceLogicPos.x + 1, playerPieceLogicPos.y),
-                        new Vector2Int(playerPieceLogicPos.x, playerPieceLogicPos.y - 1),
-                        new Vector2Int(playerPieceLogicPos.x, playerPieceLogicPos.y + 1),
-                        new Vector2Int(playerPieceLogicPos.x - 1, playerPieceLogicPos.y - 1),
-                        new Vector2Int(playerPieceLogicPos.x + 1, playerPieceLogicPos.y - 1),
-                        new Vector2Int(playerPieceLogicPos.x - 1, playerPieceLogicPos.y + 1),
-                        new Vector2Int(playerPieceLogicPos.x + 1, playerPieceLogicPos.y + 1)
-                    };
-                    break;
-                default:
-                    throw new System.NotImplementedException("未対応の駒タイプです");
-            }
-
-            // 角行・飛車は成っていた場合、候補に王将・玉将の動きを追加
-            if(playerPiece.IsPromoted)
-            {
-                if(actualPieceType == PieceType.KAKU ||
-                actualPieceType == PieceType.HISHA)
-                {
-                    // 王将・玉将の動きを追加
-                    destinationCandidates.AddRange(new List<Vector2Int>
-                    {
-                        new Vector2Int(playerPieceLogicPos.x - 1, playerPieceLogicPos.y),
-                        new Vector2Int(playerPieceLogicPos.x + 1, playerPieceLogicPos.y),
-                        new Vector2Int(playerPieceLogicPos.x, playerPieceLogicPos.y - 1),
-                        new Vector2Int(playerPieceLogicPos.x, playerPieceLogicPos.y + 1),
-                        new Vector2Int(playerPieceLogicPos.x - 1, playerPieceLogicPos.y - 1),
-                        new Vector2Int(playerPieceLogicPos.x + 1, playerPieceLogicPos.y - 1),
-                        new Vector2Int(playerPieceLogicPos.x - 1, playerPieceLogicPos.y + 1),
-                        new Vector2Int(playerPieceLogicPos.x + 1, playerPieceLogicPos.y + 1)
-                    });
-                }
-            }
-
-            // 将棋盤の範囲外の候補を削除
-            destinationCandidates.RemoveAll(pos => pos.x < 0 || pos.x >= BOARD_SIZE || pos.y < 0 || pos.y >= BOARD_SIZE);
-
-            // 味方の駒がいるマスの候補を削除
-            destinationCandidates.RemoveAll(pos => IsCellOccupied(pos, out var occupyingPiece) && occupyingPiece.PlayerSide == playerSide);
-        }
-
-        Debug.Log($"候補座標: {string.Join(", ", destinationCandidates)}");
-
-        return destinationCandidates.ToArray();
-    }
-    /// <summary>
-    /// 指定したロジック座標に駒が存在するかどうかを判定する
-    /// </summary>
-    /// <param name="logicPos">ロジック座標</param>
-    /// <param name="occupyingPiece">駒が存在する場合、その駒の参照</param>
-    /// <returns>駒が存在する場合はtrue、存在しない場合はfalse</returns>
-    private bool IsCellOccupied(Vector2Int logicPos, out Piece occupyingPiece)
-    {
-        // 範囲外チェック
-        if (logicPos.x < 0 || logicPos.x >= BOARD_SIZE || logicPos.y < 0 || logicPos.y >= BOARD_SIZE)
-        {
-            occupyingPiece = null;
-            return false;
-        }
-
-        // ロジック座標からワールド座標を取得し、その座標に駒が存在するかを判定
-        Vector3 cellWorldPos = _cellWorldPositions[logicPos.x, logicPos.y];
-        _clickRaycaster.TryGetPiece(cellWorldPos, out occupyingPiece);
-        return occupyingPiece != null;
+        // 配列に変換
+        _fuPieces = fuPieces.ToArray();
     }
 
     /// <summary>
@@ -789,7 +422,7 @@ public class GameManager : MonoBehaviour
         if (_currentSelectedPieceDestinationCandidates == null)
         {
             // 選択中の駒の移動先候補を取得
-            _currentSelectedPieceDestinationCandidates = GetMoveDestinationCandidates(_currentSelectedPiece, _currentPlayerSide);
+            _currentSelectedPieceDestinationCandidates = LogicFunction.GetMoveDestinationCandidates(_currentSelectedPiece, _pieces, _fuPieces);
             // 候補先がない場合、駒選択待ちへ遷移
             if(_currentSelectedPieceDestinationCandidates.Length == 0)
             {
@@ -879,7 +512,7 @@ public class GameManager : MonoBehaviour
         Vector3 targetPosition = _cellWorldPositions[destination.x, destination.y]+ Vector3.up * 0.01f;
 
         // targetPositionに相手の駒があるか確認
-        _clickRaycaster.TryGetPiece(targetPosition, out var occupyingPiece);
+        Piece occupyingPiece = _pieces[destination.x, destination.y];
         bool isEnemyPiecePresent = occupyingPiece != null && occupyingPiece.PlayerSide != piece.PlayerSide;
 
         // 移動アニメーション(startingPositionからtargetPositionへ線形補間で_pieceMoveDuration秒かけて移動)
@@ -891,6 +524,7 @@ public class GameManager : MonoBehaviour
             elapsedTime += Time.deltaTime;
             yield return null;
         }
+        // 最終的に正確な位置に設定
         piece.transform.position = targetPosition;
 
         // 移動先に相手の駒があれば、その駒を自分のサイドに書き換えて駒台に移動
@@ -910,6 +544,8 @@ public class GameManager : MonoBehaviour
             occupyingPiece.PlayerSide = piece.PlayerSide;
             occupyingPiece.IsPromoted = false;
             occupyingPiece.IsMainStagePiece = false;
+            // ロジック座標を初期化
+            occupyingPiece.LogicPos = new Vector2Int(-1, -1);
 
             // 自分のサイドの駒台に追加
             if(piece.PlayerSide == PlayerSide.BOTTOM)
@@ -924,6 +560,9 @@ public class GameManager : MonoBehaviour
             RearrangePieceStage(occupyingPiece.PlayerSide);
             // 駒の向きを変更
             occupyingPiece.transform.rotation = (piece.PlayerSide == PlayerSide.BOTTOM) ? Quaternion.Euler(0, 180, 0) : Quaternion.identity;
+
+            // 将棋盤配列から駒を削除
+            _pieces[destination.x, destination.y] = null;
         }
 
         // 駒の成り判定
@@ -1003,10 +642,15 @@ public class GameManager : MonoBehaviour
 
         // 駒の移動完了後の処理
         piece.IsMainStagePiece = true;
+        piece.LogicPos = destination;
         _isPieceMoving = false;
         _currentSelectedPiece = null;
         _currentSelectedPieceDestinationCandidates = null;
         _currentSelectedPieceDestination = new Vector2Int(-1, -1);
+
+        // 将棋盤配列の更新
+        _pieces[previousLogicPos.x, previousLogicPos.y] = null;
+        _pieces[destination.x, destination.y] = piece;
 
         _currentSequence = IngameSequence.TurnEnded;
     }

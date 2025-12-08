@@ -30,6 +30,18 @@ public class Piece : MonoBehaviour
         set => _isPromoted = value;
     }
     /// <summary>
+    /// ロジック座標
+    /// </summary>
+    private Vector2Int _logicPos = new Vector2Int(-1, -1);
+    /// <summary>
+    /// ロジック座標
+    /// </summary>
+    public Vector2Int LogicPos
+    {
+        get => _logicPos;
+        set => _logicPos = value;
+    }
+    /// <summary>
     /// メインステージの駒かどうか(持ち駒かどうか)
     /// </summary>
     [SerializeField] private bool _isMainStagePiece = true;
