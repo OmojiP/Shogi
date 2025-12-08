@@ -12,11 +12,6 @@ public class GameManager : MonoBehaviour
     /// </summary>
     [SerializeField] private TextAsset _initialPlacementTextAsset;
 
-    /// <summary>
-    /// クリックで座標を取得するコンポーネント
-    /// </summary>
-    [SerializeField] private ClickRaycaster _clickRaycaster;
-
     [SerializeField] private Player _playerTop;
     [SerializeField] private Player _playerBottom;
     [SerializeField] private MainStage _mainStage;
@@ -27,7 +22,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private int _turnCount = 0;
 
-    void Start()
+    public void Start()
     {
         // UIの初期化
         _ingameUIManager.InitializeUI();

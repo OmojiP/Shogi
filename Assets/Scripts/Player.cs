@@ -12,7 +12,7 @@ public class Player : MonoBehaviour
     /// </summary>
     [SerializeField] private PlayerSide _myPlayerSide;
 
-    // 他オブジェくトの参照
+    // 他オブジェクトの参照
     /// <summary>
     /// ゲームの進行を管理するマネージャー
     /// </summary>
@@ -29,7 +29,7 @@ public class Player : MonoBehaviour
     /// <summary>
     /// インゲームのシーケンス管理
     /// </summary>
-    private PlayerTurnPhaseType _currentPhase = PlayerTurnPhaseType.WaitingGameStart; // 初期状態はゲーム開始待ち
+    private PlayerTurnPhaseType _currentPhase = PlayerTurnPhaseType.WAITING_GAME_START; // 初期状態はゲーム開始待ち
     /// <summary>
     /// 現在選択中の駒
     /// </summary>
@@ -54,16 +54,16 @@ public class Player : MonoBehaviour
 
         switch (_currentPhase)
         {
-            case PlayerTurnPhaseType.WaitingPieceSelect:
+            case PlayerTurnPhaseType.WAITING_PIECE_SELECT:
                 HandlePieceSelect(clickedPiece);
                 break;
-            case PlayerTurnPhaseType.PieceDestinationSelect:
+            case PlayerTurnPhaseType.PIECE_DESTINATION_SELECT:
                 HandlePieceDestinationSelect(clickedPiece.LogicPos);
                 break;
-            case PlayerTurnPhaseType.PieceMoving:
+            case PlayerTurnPhaseType.PIECE_MOVING:
                 // 駒の移動フェーズ中は無視
                 break;
-            case PlayerTurnPhaseType.TurnEnded:
+            case PlayerTurnPhaseType.TURN_ENDED:
                 // ターン終了処理中は無視
                 break;
         }
@@ -81,16 +81,16 @@ public class Player : MonoBehaviour
 
         switch (_currentPhase)
         {
-            case PlayerTurnPhaseType.WaitingPieceSelect:
+            case PlayerTurnPhaseType.WAITING_PIECE_SELECT:
                 // 駒選択待ち中は無視
                 break;
-            case PlayerTurnPhaseType.PieceDestinationSelect:
+            case PlayerTurnPhaseType.PIECE_DESTINATION_SELECT:
                 HandlePieceDestinationSelect(logicPos);
                 break;
-            case PlayerTurnPhaseType.PieceMoving:
+            case PlayerTurnPhaseType.PIECE_MOVING:
                 // 駒の移動フェーズ中は無視
                 break;
-            case PlayerTurnPhaseType.TurnEnded:
+            case PlayerTurnPhaseType.TURN_ENDED:
                 // ターン終了処理中には無視
                 break;
         }
@@ -112,7 +112,7 @@ public class Player : MonoBehaviour
     private void EnterPieceSelect()
     {
         // 駒選択待ちへ遷移
-        _currentPhase = PlayerTurnPhaseType.WaitingPieceSelect;
+        _currentPhase = PlayerTurnPhaseType.WAITING_PIECE_SELECT;
         
         // 選択中の駒情報をリセット
         _currentSelectedPiece = null;
@@ -145,7 +145,7 @@ public class Player : MonoBehaviour
     private void EnterPieceDestinationSelect()
     {
         // 駒の移動先選択待ちへ遷移
-        _currentPhase = PlayerTurnPhaseType.PieceDestinationSelect;
+        _currentPhase = PlayerTurnPhaseType.PIECE_DESTINATION_SELECT;
 
         // 選択中の駒の移動先候補を取得
         _currentSelectedPieceDestinationCandidates = LogicFunction.GetMoveDestinationCandidates(_currentSelectedPiece, _mainStage);
@@ -208,7 +208,7 @@ public class Player : MonoBehaviour
     private void EnterPieceMoving()
     {
         // 駒の移動フェーズへ遷移
-        _currentPhase = PlayerTurnPhaseType.PieceMoving;
+        _currentPhase = PlayerTurnPhaseType.PIECE_MOVING;
 
         // 駒の移動処理を開始
         StartCoroutine(MovePieceToDestination(_currentSelectedPiece, _currentSelectedPieceDestination));
@@ -235,6 +235,7 @@ public class Player : MonoBehaviour
             if(occupyingPiece.PieceType == PieceType.OU || occupyingPiece.PieceType == PieceType.GYOKU)
             {
                 // ゲーム終了処理を実行
+                _currentPhase = PlayerTurnPhaseType.GAME_ENDED;
                 _gameManager.OnGameEnded(piece.PlayerSide);
                 yield break; // コルーチンを終了
             }
@@ -271,7 +272,7 @@ public class Player : MonoBehaviour
         
         Debug.Log($"{_myPlayerSide} Turn Ended");
 
-        _currentPhase = PlayerTurnPhaseType.TurnEnded;
+        _currentPhase = PlayerTurnPhaseType.TURN_ENDED;
 
         // 各種変数のリセット
         // 選択中の駒情報をリセット
@@ -282,7 +283,7 @@ public class Player : MonoBehaviour
         _currentSelectedPieceDestination = new Vector2Int(-1, -1);
 
         // 相手のターン待ちへ遷移
-        _currentPhase = PlayerTurnPhaseType.WaitingForOpponentTurn;
+        _currentPhase = PlayerTurnPhaseType.WAITING_FOR_OPPONENT_TURN;
 
         // ゲームマネージャーにターン終了を通知
         _gameManager.OnPlayerTurnEnded(_myPlayerSide);
@@ -296,30 +297,30 @@ public class Player : MonoBehaviour
         /// <summary>
         /// ゲーム開始待ち
         /// </summary>
-        WaitingGameStart = 0,
+        WAITING_GAME_START = 0,
         /// <summary>
         /// 駒選択待ち
         /// </summary>
-        WaitingPieceSelect = 1,
+        WAITING_PIECE_SELECT = 1,
         /// <summary>
         /// 駒の移動先選択待ち
         /// </summary>
-        PieceDestinationSelect = 2,
+        PIECE_DESTINATION_SELECT = 2,
         /// <summary>
         /// 駒移動フェーズ
         /// </summary>
-        PieceMoving = 3,
+        PIECE_MOVING = 3,
         /// <summary>
         /// ターン終了処理
         /// </summary>
-        TurnEnded = 4,
+        TURN_ENDED = 4,
         /// <summary>
         /// 相手のターン待ち
         /// </summary>
-        WaitingForOpponentTurn = 5,
+        WAITING_FOR_OPPONENT_TURN = 5,
         /// <summary>
         /// ゲーム終了
         /// </summary>
-        GameEnded = 6,
+        GAME_ENDED = 6,
     }
 }
