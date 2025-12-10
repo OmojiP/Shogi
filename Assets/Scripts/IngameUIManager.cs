@@ -51,6 +51,9 @@ public class IngameUIManager : MonoBehaviour
     /// </summary>
     [SerializeField] private Button _restartButton;
 
+    /// <summary>
+    /// UIの初期化処理
+    /// </summary>
     public void InitializeUI()
     {
         // 成り確認UIの設定
@@ -86,15 +89,19 @@ public class IngameUIManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 
+    /// 結果表示UIを表示する処理
     /// </summary>
-    /// <param name="winnerSide"></param>
+    /// <param name="winnerSide">勝者のプレイヤーサイド</param>
     public void ShowResultUI(PlayerSide winnerSide)
     {
         _resultText.text = $"{winnerSide} win!";
         _resultUI.SetActive(true);
     }
 
+    /// <summary>
+    /// 成るか確認UIを表示し、プレイヤーの入力を待つコルーチン
+    /// </summary>
+    /// <param name="callbackIsYesClicked">成るか確認の結果を受け取るコールバック</param>
     public IEnumerator ShowPromotionConfirmUI(Action<bool> callbackIsYesClicked)
     {
         // 成るか確認UIを表示
