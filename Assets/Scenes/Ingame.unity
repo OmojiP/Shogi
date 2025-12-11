@@ -2439,6 +2439,7 @@ GameObject:
   - component: {fileID: 1953021664}
   - component: {fileID: 1953021666}
   - component: {fileID: 1953021667}
+  - component: {fileID: 1953021668}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -2459,11 +2460,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _initialPlacementTextAsset: {fileID: 4900000, guid: 1014560bea0467772af07a72650397cc, type: 3}
-  _clickRaycaster: {fileID: 1953021666}
   _playerTop: {fileID: 785889145}
   _playerBottom: {fileID: 8263733763461040170}
   _mainStage: {fileID: 1391575487}
   _ingameUIManager: {fileID: 1027760319}
+  _piecePlacementReader: {fileID: 1953021668}
 --- !u!4 &1953021665
 Transform:
   m_ObjectHideFlags: 0
@@ -2507,6 +2508,18 @@ MonoBehaviour:
   _players:
   - {fileID: 8263733763461040170}
   - {fileID: 785889145}
+--- !u!114 &1953021668
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1953021663}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08f6eb0900f081648be9332cd3d2ca83, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1969455206
 GameObject:
   m_ObjectHideFlags: 0
