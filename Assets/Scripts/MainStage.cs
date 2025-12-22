@@ -8,12 +8,6 @@ using UnityEngine;
 /// </summary>
 public class MainStage : MonoBehaviour
 {
-    // 他オブジェクトの参照
-    /// <summary>
-    /// UIマネージャー
-    /// </summary>
-    [SerializeField] private IngameUIManager _uiManager;
-
     // 盤データ
     /// <summary>
     /// 将棋盤のマスのプレハブ
@@ -172,7 +166,7 @@ public class MainStage : MonoBehaviour
                 var piece = Instantiate(piecePrefab, spawnPosition, Quaternion.identity, _pieceParentTransform);
                 
                 // 駒の情報を設定
-                piece.Initialize(placementInfo.LogicPosition, placementInfo.PlayerSide, placementInfo.IsPromoted, _uiManager);
+                piece.Initialize(placementInfo.LogicPosition, placementInfo.PlayerSide, placementInfo.IsPromoted);
 
                 // 駒を将棋盤上の配列に登録
                 _pieces[placementInfo.LogicPosition.x, placementInfo.LogicPosition.y] = piece;

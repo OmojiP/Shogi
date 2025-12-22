@@ -1,3 +1,4 @@
+using R3;
 using System;
 using System.Collections;
 using TMPro;
@@ -11,6 +12,12 @@ using UnityEngine.UI;
 /// </summary>
 public class IngameUIManager : MonoBehaviour
 {
+    // 他オブジェクトの参照
+    /// <summary>
+    /// ゲームの進行状態を監視してUIを変更するためのゲーム進行管理者の参照
+    /// </summary>
+    [SerializeField] GameManager _gameManager;
+
     // 成るか確認するUI
     /// <summary>
     /// 成るか確認UIのパネルオブジェクト
@@ -51,14 +58,21 @@ public class IngameUIManager : MonoBehaviour
     /// </summary>
     [SerializeField] private Button _restartButton;
 
+    private void Start()
+    {
+        // イベントを登録
+        RegisterEvents();
+
+        // UIの初期化処理を行う
+        InitializeUI();
+    }
+
     /// <summary>
-    /// UIの初期化処理
+    /// イベントを登録する
     /// </summary>
-    public void InitializeUI()
+    private void RegisterEvents()
     {
         // 成り確認UIの設定
-        // UIを非表示にする
-        _promotionConfirmUI.SetActive(false);
         // ボタンに処理を登録
         _promotionYesButton.onClick.AddListener(() =>
         {
@@ -74,8 +88,7 @@ public class IngameUIManager : MonoBehaviour
         });
 
         // 結果画面UIの設定
-        // UIを非表示にする
-        _resultUI.SetActive(false);
+        // ボタンに処理を登録
         _backToTitleButton.onClick.AddListener(() =>
         {
             // タイトルに戻るボタンがクリックされたら、タイトルシーンに遷移する
@@ -86,13 +99,37 @@ public class IngameUIManager : MonoBehaviour
             // もう一度ボタンがクリックされたら、インゲームシーンに遷移する
             SceneManager.LoadScene("Ingame");
         });
+
+        // GameManagerの登録
+        // ゲームが終了したら結果UIを表示する
+        _gameManager.OnEndedGame
+            .Subscribe(winnerSide =>
+            {
+                // 結果UIを表示
+                ShowResultUI(winnerSide);
+            })
+            .AddTo(this);
+    }
+
+    /// <summary>
+    /// UIの初期化処理
+    /// </summary>
+    private void InitializeUI()
+    {
+        // 成り確認UIの設定
+        // UIを非表示にする
+        _promotionConfirmUI.SetActive(false);
+
+        // 結果画面UIの設定
+        // UIを非表示にする
+        _resultUI.SetActive(false);
     }
 
     /// <summary>
     /// 結果表示UIを表示する処理
     /// </summary>
     /// <param name="winnerSide">勝者のプレイヤーサイド</param>
-    public void ShowResultUI(PlayerSide winnerSide)
+    private void ShowResultUI(PlayerSide winnerSide)
     {
         _resultText.text = $"{winnerSide} win!";
         _resultUI.SetActive(true);

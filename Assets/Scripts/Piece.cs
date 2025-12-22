@@ -58,19 +58,6 @@ public class Piece : MonoBehaviour
     private float _pieceMoveDuration = 0.5f;
 
     /// <summary>
-    /// UIマネージャー
-    /// </summary>
-    private IngameUIManager _uiManager;
-    /// <summary>
-    /// UIマネージャー
-    /// </summary>
-    public IngameUIManager UIManager
-    {
-        get { return _uiManager; }
-        set { _uiManager = value; }
-    }
-
-    /// <summary>
     /// プレイヤーサイドを変更する関数
     /// </summary>
     /// <param name="newSide">新しいプレイヤーサイド</param>
@@ -111,10 +98,9 @@ public class Piece : MonoBehaviour
     /// <param name="playerSide">プレイヤーサイド</param>
     /// <param name="isPromoted">成っているかどうか</param>
     /// <param name="uiManager">UIマネージャー</param>
-    public void Initialize(Vector2Int logicPos, PlayerSide playerSide, bool isPromoted, IngameUIManager uiManager)
+    public void Initialize(Vector2Int logicPos, PlayerSide playerSide, bool isPromoted)
     {
         _logicPos = logicPos;
-        _uiManager = uiManager;
 
         ChangePlayerSide(playerSide);
         ChangePromotionState(isPromoted);
@@ -140,9 +126,6 @@ public class Piece : MonoBehaviour
 
         // 移動アニメーション(startingPositionからtargetPositionへ線形補間で_pieceMoveDuration秒かけて移動)
         yield return MoveAnimation(targetPosition);
-
-        // 成る処理
-        yield return TryPromote(previousLogicPos, destination);
 
         // 駒の移動完了後の処理
         _isMainStagePiece = true;
@@ -187,61 +170,6 @@ public class Piece : MonoBehaviour
             yield return null;
         }
         this.transform.position = targetPosition;
-    }
-
-    /// <summary>
-    /// 駒がなれるか確認し、なれる場合は成る処理を行う
-    /// </summary>
-    private IEnumerator TryPromote(Vector2Int previousLogicPos, Vector2Int destination)
-    {
-        // 相手陣地に入っているかどうか
-        bool isInPromotionZone = (PlayerSide == PlayerSide.BOTTOM && destination.y >= 6) ||
-                                 (PlayerSide == PlayerSide.TOP && destination.y <= 2) ||
-                                 (PlayerSide == PlayerSide.BOTTOM && previousLogicPos.y >= 6) ||
-                                 (PlayerSide == PlayerSide.TOP && previousLogicPos.y <= 2);
-        // 成れる駒かどうか
-        bool isPromotablePiece = PieceType == PieceType.FU ||
-                                 PieceType == PieceType.KYOSHA ||
-                                 PieceType == PieceType.KEIMA ||
-                                 PieceType == PieceType.GIN ||
-                                 PieceType == PieceType.KAKU ||
-                                 PieceType == PieceType.HISHA;
-        // 移動の前後どちらかで相手陣地に入っていて、まだ成っていなくて、今ターンに盤上に出た駒でなければ成る
-        if(isInPromotionZone && !IsPromoted && IsMainStagePiece && isPromotablePiece)
-        {
-            // 成れる状態
-
-            // 1列目の歩, 香車, 2列目の桂馬は強制的に成る
-            bool isForcedPromotion = ((PieceType == PieceType.FU || PieceType == PieceType.KYOSHA) &&
-                                     ((PlayerSide == PlayerSide.BOTTOM && destination.y == 8) ||
-                                      (PlayerSide == PlayerSide.TOP && destination.y == 0)))
-                                     ||
-                                     (PieceType == PieceType.KEIMA &&
-                                     ((PlayerSide == PlayerSide.BOTTOM && destination.y >= 7) ||
-                                      (PlayerSide == PlayerSide.TOP && destination.y <= 1)));
-            if (isForcedPromotion)
-            {
-                // 強制的に成る
-                ChangePromotionState(true);
-                Debug.Log($"Piece forced promoted: {PieceType} at {destination}");
-            }
-            else
-            {
-                // 任意で成る場合
-
-                // 成るか確認UIを表示し、プレイヤーの選択を待つ
-                yield return _uiManager.ShowPromotionConfirmUI(isYesSelected =>
-                {
-                    // 成るが選択された場合
-                    if (isYesSelected)
-                    {
-                        // 成る処理を行う
-                        ChangePromotionState(true);
-                        Debug.Log($"Piece promoted: {PieceType} at {destination}");
-                    }
-                });
-            }
-        }
     }
 }
 

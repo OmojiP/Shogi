@@ -1,3 +1,4 @@
+using R3;
 using System.Collections;
 using UnityEngine;
 
@@ -14,10 +15,6 @@ public class Player : MonoBehaviour
 
     // 他オブジェクトの参照
     /// <summary>
-    /// ゲームの進行を管理するマネージャー
-    /// </summary>
-    [SerializeField] private GameManager _gameManager;
-    /// <summary>
     /// メインステージ
     /// </summary>
     [SerializeField] private MainStage _mainStage;
@@ -25,11 +22,28 @@ public class Player : MonoBehaviour
     /// 自分の駒台
     /// </summary>
     [SerializeField] private PieceStage _myPieceStage;
-    
     /// <summary>
-    /// インゲームのシーケンス管理
+    /// 成るかの確認を問いかける橋渡しオブジェクト
     /// </summary>
-    private PlayerTurnPhaseType _currentPhase = PlayerTurnPhaseType.WAITING_GAME_START; // 初期状態はゲーム開始待ち
+    [SerializeField] private PromotionDecision _promotionDecision;
+
+    /// <summary>
+    /// Playerの状態管理を行うReactiveProperty
+    /// </summary>
+    private ReactiveProperty<PlayerTurnPhaseType> _currentPlayerTurnPhase = new(PlayerTurnPhaseType.IDLE); // 初期状態は待機状態
+    /// <summary>
+    /// Playerの状態管理を行うReadOnlyReactiveProperty
+    /// </summary>
+    public ReadOnlyReactiveProperty<PlayerTurnPhaseType> CurrentPlayerTurnPhase => _currentPlayerTurnPhase.ToReadOnlyReactiveProperty();
+    /// <summary>
+    /// 王の駒を取った際に発行するイベント
+    /// </summary>
+    private Subject<Unit> _onGottenKing = new();
+    /// <summary>
+    /// 王の駒を取った際に発行するイベント
+    /// </summary>
+    public Observable<Unit> OnGottenKing => _onGottenKing;
+
     /// <summary>
     /// 現在選択中の駒
     /// </summary>
@@ -43,6 +57,7 @@ public class Player : MonoBehaviour
     /// </summary>
     private Vector2Int _currentSelectedPieceDestination = new Vector2Int(-1, -1);
 
+
     /// <summary>
     /// 駒がクリックされたときの処理
     /// </summary>
@@ -51,21 +66,21 @@ public class Player : MonoBehaviour
     {
         // 駒がクリックされた場合の処理
         Debug.Log($"Piece clicked: {clickedPiece.PieceType} at {clickedPiece.LogicPos}");
-
-        switch (_currentPhase)
+        
+        switch (_currentPlayerTurnPhase.Value)
         {
             case PlayerTurnPhaseType.WAITING_PIECE_SELECT:
+                // 駒選択待ちなら実行
                 HandlePieceSelect(clickedPiece);
                 break;
             case PlayerTurnPhaseType.PIECE_DESTINATION_SELECT:
+                // 移動先選択待ちなら実行
                 HandlePieceDestinationSelect(clickedPiece.LogicPos);
                 break;
-            case PlayerTurnPhaseType.PIECE_MOVING:
-                // 駒の移動フェーズ中は無視
+            default:
+                // その他の状態なら無視
                 break;
-            case PlayerTurnPhaseType.TURN_ENDED:
-                // ターン終了処理中は無視
-                break;
+
         }
     }
 
@@ -79,19 +94,14 @@ public class Player : MonoBehaviour
         Vector2Int logicPos = clickedCell.LogicPos;
         Debug.Log($"Cell clicked at logic position: {logicPos}");
 
-        switch (_currentPhase)
+        switch (_currentPlayerTurnPhase.Value)
         {
-            case PlayerTurnPhaseType.WAITING_PIECE_SELECT:
-                // 駒選択待ち中は無視
-                break;
             case PlayerTurnPhaseType.PIECE_DESTINATION_SELECT:
+                // 移動先選択待ちなら実行
                 HandlePieceDestinationSelect(logicPos);
                 break;
-            case PlayerTurnPhaseType.PIECE_MOVING:
-                // 駒の移動フェーズ中は無視
-                break;
-            case PlayerTurnPhaseType.TURN_ENDED:
-                // ターン終了処理中には無視
+            default:
+                // その他の状態なら無視
                 break;
         }
     }
@@ -112,7 +122,7 @@ public class Player : MonoBehaviour
     private void EnterPieceSelect()
     {
         // 駒選択待ちへ遷移
-        _currentPhase = PlayerTurnPhaseType.WAITING_PIECE_SELECT;
+        _currentPlayerTurnPhase.Value = PlayerTurnPhaseType.WAITING_PIECE_SELECT;
         
         // 選択中の駒情報をリセット
         _currentSelectedPiece = null;
@@ -145,7 +155,7 @@ public class Player : MonoBehaviour
     private void EnterPieceDestinationSelect()
     {
         // 駒の移動先選択待ちへ遷移
-        _currentPhase = PlayerTurnPhaseType.PIECE_DESTINATION_SELECT;
+        _currentPlayerTurnPhase.Value = PlayerTurnPhaseType.PIECE_DESTINATION_SELECT;
 
         // 選択中の駒の移動先候補を取得
         _currentSelectedPieceDestinationCandidates = LogicFunction.GetMoveDestinationCandidates(_currentSelectedPiece, _mainStage);
@@ -208,7 +218,7 @@ public class Player : MonoBehaviour
     private void EnterPieceMoving()
     {
         // 駒の移動フェーズへ遷移
-        _currentPhase = PlayerTurnPhaseType.PIECE_MOVING;
+        _currentPlayerTurnPhase.Value = PlayerTurnPhaseType.PIECE_MOVING;
 
         // 駒の移動処理を開始
         StartCoroutine(MovePieceToDestination(_currentSelectedPiece, _currentSelectedPieceDestination));
@@ -234,9 +244,11 @@ public class Player : MonoBehaviour
             // 王 or 玉なら試合終了
             if(occupyingPiece.PieceType == PieceType.OU || occupyingPiece.PieceType == PieceType.GYOKU)
             {
-                // ゲーム終了処理を実行
-                _currentPhase = PlayerTurnPhaseType.GAME_ENDED;
-                _gameManager.OnGameEnded(piece.PlayerSide);
+                // 王を取ったことを通知
+                _onGottenKing.OnNext(Unit.Default);
+
+                // 行動を終了して待機状態に戻る
+                _currentPlayerTurnPhase.Value = PlayerTurnPhaseType.IDLE;
                 yield break; // コルーチンを終了
             }
 
@@ -245,34 +257,64 @@ public class Player : MonoBehaviour
             yield return _myPieceStage.AddPiece(occupyingPiece); // 駒台に駒を移動
         }
 
+        // 移動前の座標を持っておく
+        Vector2Int previousPos = piece.LogicPos;
+        // 駒が移動前に将棋盤上にあったか
+        bool isFromMainStage;
+
         // 駒を移動
         if (piece.IsMainStagePiece)
         {
             // 盤上の駒の場合、一旦盤上から取り除く        
             _mainStage.PickupPiece(piece.LogicPos);
+            isFromMainStage = true;
         }
         else
         {
             // 駒台の駒の場合、駒台から取り除く
             _myPieceStage.RemovePiece(piece);
+            isFromMainStage = false;
         }
         // 取り出した駒を目的地まで移動させる
         yield return _mainStage.PlacePiece(piece, destination);
+        // 駒が成れるか確認し、成れる場合は成らせる
+        var promoteResult = LogicFunction.CheckPiecePromotable(piece,isFromMainStage, previousPos, destination);
+        switch (promoteResult)
+        {
+            case LogicFunction.PiecePromoteJudgementType.FORCE_PROMOTE:
+                piece.ChangePromotionState(true);
+                break;
+            case LogicFunction.PiecePromoteJudgementType.SELECTABLE_PROMOTE:
+                // 成るかどうか確認し、結果を受け取って処理する
+                yield return _promotionDecision.DecidePromotionAsync(isYesSelected =>
+                {
+                    // 成るが選択された場合
+                    if (isYesSelected)
+                    {
+                        // 成る処理を行う
+                        piece.ChangePromotionState(true);
+                        Debug.Log($"Piece promoted: {piece.PieceType} at {destination}");
+                    }
+                });
+                break;
+            case LogicFunction.PiecePromoteJudgementType.CANT_PROMOTE:
+                // 何もしない
+                break;
+            default:
+                // 何もしない
+                break;
+        }
 
-        // 移動したらターン終了フェーズへ遷移
-        EnterTurnEnded();
+        // 駒移動終了時の処理
+        OnEndedMovePiece();
     }
 
     /// <summary>
-    /// ターン終了フェーズに入ったときの処理
+    /// 駒移動が完了したときの処理
     /// </summary>
-    private void EnterTurnEnded()
-    {
-        // ターン終了を発行してシーケンスに通知
-        
-        Debug.Log($"{_myPlayerSide} Turn Ended");
-
-        _currentPhase = PlayerTurnPhaseType.TURN_ENDED;
+    private void OnEndedMovePiece()
+    {   
+        Debug.Log($"{_myPlayerSide} End Move Piece");
 
         // 各種変数のリセット
         // 選択中の駒情報をリセット
@@ -282,45 +324,30 @@ public class Player : MonoBehaviour
         // 選択中の駒の移動先をリセット
         _currentSelectedPieceDestination = new Vector2Int(-1, -1);
 
-        // 相手のターン待ちへ遷移
-        _currentPhase = PlayerTurnPhaseType.WAITING_FOR_OPPONENT_TURN;
-
-        // ゲームマネージャーにターン終了を通知
-        _gameManager.OnPlayerTurnEnded(_myPlayerSide);
+        // 待機状態へ遷移
+        _currentPlayerTurnPhase.Value = PlayerTurnPhaseType.IDLE;
     }
+}
 
+/// <summary>
+/// プレイヤーの自ターンフェーズ列挙型
+/// </summary>
+public enum PlayerTurnPhaseType
+{
     /// <summary>
-    /// プレイヤーの自ターンフェーズ列挙型
+    /// 行動の許可待ち
     /// </summary>
-    private enum PlayerTurnPhaseType
-    {
-        /// <summary>
-        /// ゲーム開始待ち
-        /// </summary>
-        WAITING_GAME_START = 0,
-        /// <summary>
-        /// 駒選択待ち
-        /// </summary>
-        WAITING_PIECE_SELECT = 1,
-        /// <summary>
-        /// 駒の移動先選択待ち
-        /// </summary>
-        PIECE_DESTINATION_SELECT = 2,
-        /// <summary>
-        /// 駒移動フェーズ
-        /// </summary>
-        PIECE_MOVING = 3,
-        /// <summary>
-        /// ターン終了処理
-        /// </summary>
-        TURN_ENDED = 4,
-        /// <summary>
-        /// 相手のターン待ち
-        /// </summary>
-        WAITING_FOR_OPPONENT_TURN = 5,
-        /// <summary>
-        /// ゲーム終了
-        /// </summary>
-        GAME_ENDED = 6,
-    }
+    IDLE = 0,
+    /// <summary>
+    /// 駒選択待ち
+    /// </summary>
+    WAITING_PIECE_SELECT = 1,
+    /// <summary>
+    /// 駒の移動先選択待ち
+    /// </summary>
+    PIECE_DESTINATION_SELECT = 2,
+    /// <summary>
+    /// 駒移動フェーズ
+    /// </summary>
+    PIECE_MOVING = 3,
 }
