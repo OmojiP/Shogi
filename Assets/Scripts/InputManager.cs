@@ -1,3 +1,4 @@
+using R3;
 using UnityEngine;
 
 /// <summary>
@@ -10,27 +11,37 @@ public class InputManager : MonoBehaviour
     /// </summary>
     [SerializeField] private ClickRaycaster _clickRaycaster;
 
-    [SerializeField] private Player[] _players;
+    /// <summary>
+    /// 駒がクリックされたときに発行するイベント
+    /// </summary>
+    private Subject<Piece> _onPieceClicked = new();
+    /// <summary>
+    /// 駒がクリックされたときに発行するイベント
+    /// </summary>
+    public Observable<Piece> OnPieceClicked => _onPieceClicked;
+    /// <summary>
+    /// マスがクリックされたときに発行するイベント
+    /// </summary>
+    private Subject<StageCell> _onStageCellClicked = new();
+    /// <summary>
+    /// マスがクリックされたときに発行するイベント
+    /// </summary>
+    public Observable<StageCell> OnStageCellClicked => _onStageCellClicked;
 
     void Update()
     {
         // 駒がクリックされたか判定
         if(_clickRaycaster.TryGetClickedPiece(out Piece clickedPiece))
         {
-            // 駒がクリックされた場合、Playerにそれを通知
-            foreach(var player in _players)
-            {
-                player.OnPieceClicked(clickedPiece);
-            }
+            // クリックされた駒でイベントを発行
+            _onPieceClicked.OnNext(clickedPiece);
         }
         // 駒がクリックされなかった場合、マスがクリックされたか判定
         else if(_clickRaycaster.TryGetClickedStageCell(out StageCell clickedCell))
         {
-            // マスがクリックされた場合、Playerにそれを通知
-            foreach(var player in _players)
-            {
-                player.OnCellClicked(clickedCell);
-            }
+            // クリックされたマスでイベントを発行
+            _onStageCellClicked.OnNext(clickedCell);
+
         }
     }
 }
