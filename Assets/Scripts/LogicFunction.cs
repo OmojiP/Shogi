@@ -10,28 +10,6 @@ public static class LogicFunction
     /// 盤のサイズ
     /// </summary>
     public static readonly int BOARD_SIZE = 9;
-
-    /// <summary>
-    /// 指定したロジック座標に駒が存在するかどうかを判定する
-    /// </summary>
-    /// <param name="logicPos">ロジック座標</param>
-    /// <param name="occupyingPiece">駒が存在する場合、その駒の参照</param>
-    /// <returns>駒が存在する場合はtrue、存在しない場合はfalse</returns>
-    public static bool IsCellOccupied(Vector2Int logicPos, Piece[,] pieces, out Piece occupyingPiece)
-    {
-        // 範囲外チェック
-        if (logicPos.x < 0 || logicPos.x >= BOARD_SIZE || logicPos.y < 0 || logicPos.y >= BOARD_SIZE)
-        {
-            occupyingPiece = null;
-            return false;
-        }
-
-        // 指定したロジック座標に駒が存在すれば取得(存在しない場合null)
-        occupyingPiece = pieces[logicPos.x, logicPos.y];
-
-        // 駒が存在する場合はtrue、存在しない場合はfalseを返す
-        return occupyingPiece != null;
-    }
     
     /// <summary>
     /// 移動先候補を取得
@@ -40,9 +18,8 @@ public static class LogicFunction
     /// <param name="playerSide">駒のプレイヤーサイド</param>
     /// <returns>移動先候補のロジック座標配列</returns>
     /// <exception cref="System.NotImplementedException"></exception>
-    public static Vector2Int[] GetMoveDestinationCandidates(Piece playerPiece, Piece[,] pieces, Piece[] fuPieces)
+    public static Vector2Int[] GetMoveDestinationCandidates(Piece playerPiece, MainStage mainStage)
     {
-
         Debug.Log($"Getting move destinations for piece: {playerPiece.PieceType} at {playerPiece.LogicPos}");
 
         // 移動先候補リスト
@@ -69,7 +46,7 @@ public static class LogicFunction
                     );
 
                     // 打てない場所でなく、そのマスに駒が存在しない場合のみ追加
-                    if(!isInvalidDropPosition && !IsCellOccupied(pos, pieces, out var occupyingPiece))
+                    if(!isInvalidDropPosition && !mainStage.TryGetPieceAt(pos, out var occupyingPiece))
                     {
                         destinationCandidates.Add(pos);
                     }
@@ -79,7 +56,7 @@ public static class LogicFunction
             // 二歩となる座標を除外
             if(playerPiece.PieceType == PieceType.FU)
             {
-                foreach(var fu in fuPieces)
+                foreach(var fu in mainStage.FuPieces)
                 {
                     // 同じプレイヤーサイドのと金でない歩のみ対象
                     if(fu.PlayerSide == playerPiece.PlayerSide && fu.IsMainStagePiece && !fu.IsPromoted)
@@ -140,7 +117,7 @@ public static class LogicFunction
                             // 候補に追加
                             destinationCandidates.Add(new Vector2Int(playerPiece.LogicPos.x, y));
                             // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
-                            if(IsCellOccupied(new Vector2Int(playerPiece.LogicPos.x, y), pieces, out var occupyingPiece))
+                            if(mainStage.TryGetPieceAt(new Vector2Int(playerPiece.LogicPos.x, y), out var occupyingPiece))
                             {
                                 break;   
                             }
@@ -153,7 +130,7 @@ public static class LogicFunction
                             // 候補に追加
                             destinationCandidates.Add(new Vector2Int(playerPiece.LogicPos.x, y));
                             // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
-                            if(IsCellOccupied(new Vector2Int(playerPiece.LogicPos.x, y), pieces, out var occupyingPiece))
+                            if(mainStage.TryGetPieceAt(new Vector2Int(playerPiece.LogicPos.x, y), out var occupyingPiece))
                             {
                                 break;
                             }
@@ -242,7 +219,7 @@ public static class LogicFunction
                         // 候補に追加
                         destinationCandidates.Add(p0);
                         // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
-                        if(IsCellOccupied(p0, pieces, out var occupyingPiece))
+                        if(mainStage.TryGetPieceAt(p0, out var occupyingPiece))
                         {
                             break; 
                         }
@@ -255,7 +232,7 @@ public static class LogicFunction
                         // 候補に追加
                         destinationCandidates.Add(p1);
                         // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
-                        if(IsCellOccupied(p1, pieces, out var occupyingPiece))
+                        if(mainStage.TryGetPieceAt(p1, out var occupyingPiece))
                         {
                             break;
                         }
@@ -268,7 +245,7 @@ public static class LogicFunction
                         // 候補に追加
                         destinationCandidates.Add(p2);
                         // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
-                        if(IsCellOccupied(p2, pieces, out var occupyingPiece))
+                        if(mainStage.TryGetPieceAt(p2, out var occupyingPiece))
                         {
                             break;
                         }
@@ -281,7 +258,7 @@ public static class LogicFunction
                         // 候補に追加
                         destinationCandidates.Add(p3);
                         // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
-                        if(IsCellOccupied(p3, pieces, out var occupyingPiece))
+                        if(mainStage.TryGetPieceAt(p3, out var occupyingPiece))
                         {
                             break;
                         }
@@ -298,7 +275,7 @@ public static class LogicFunction
                         // 候補に追加
                         destinationCandidates.Add(p0);
                         // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
-                        if(IsCellOccupied(p0, pieces, out var occupyingPiece))
+                        if(mainStage.TryGetPieceAt(p0, out var occupyingPiece))
                         {
                             break;
                         }
@@ -311,7 +288,7 @@ public static class LogicFunction
                         // 候補に追加
                         destinationCandidates.Add(p1);
                         // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
-                        if(IsCellOccupied(p1, pieces, out var occupyingPiece))
+                        if(mainStage.TryGetPieceAt(p1, out var occupyingPiece))
                         {
                             break;
                         }
@@ -324,7 +301,7 @@ public static class LogicFunction
                         // 候補に追加
                         destinationCandidates.Add(p2);
                         // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
-                        if(IsCellOccupied(p2, pieces, out var occupyingPiece))
+                        if(mainStage.TryGetPieceAt(p2, out var occupyingPiece))
                         {
                             break;
                         }
@@ -337,7 +314,7 @@ public static class LogicFunction
                         // 候補に追加
                         destinationCandidates.Add(p3);
                         // 駒があるならそのマスまで(味方駒の場合は後でまとめて取り除く)
-                        if(IsCellOccupied(p3, pieces, out var occupyingPiece))
+                        if(mainStage.TryGetPieceAt(p3, out var occupyingPiece))
                         {
                             break;
                         }
@@ -386,7 +363,7 @@ public static class LogicFunction
             destinationCandidates.RemoveAll(pos => pos.x < 0 || pos.x >= BOARD_SIZE || pos.y < 0 || pos.y >= BOARD_SIZE);
 
             // 味方の駒がいるマスの候補を削除
-            destinationCandidates.RemoveAll(pos => IsCellOccupied(pos, pieces, out var occupyingPiece) && occupyingPiece.PlayerSide == playerPiece.PlayerSide);
+            destinationCandidates.RemoveAll(pos => mainStage.TryGetPieceAt(pos, out var occupyingPiece) && occupyingPiece.PlayerSide == playerPiece.PlayerSide);
         }
 
         Debug.Log($"候補座標: {string.Join(", ", destinationCandidates)}");
