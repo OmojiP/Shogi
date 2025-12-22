@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -369,5 +370,76 @@ public static class LogicFunction
         Debug.Log($"候補座標: {string.Join(", ", destinationCandidates)}");
 
         return destinationCandidates.ToArray();
+    }
+
+    /// <summary>
+    /// 駒が成れるかどうかを確認した結果の列挙型
+    /// </summary>
+    public enum PiecePromoteJudgementType
+    {
+        /// <summary>
+        /// 成ることができない
+        /// </summary>
+        CANT_PROMOTE = 0,
+        /// <summary>
+        /// 強制的に成る必要がある
+        /// </summary>
+        FORCE_PROMOTE = 1,
+        /// <summary>
+        /// 成るか選択できる
+        /// </summary>
+        SELECTABLE_PROMOTE = 2,
+    }
+
+    /// <summary>
+    /// 駒が成れるか確認する
+    /// </summary>
+    /// <param name="piece">移動する駒</param>
+    /// <param name="isFromMainStage">移動前は将棋盤上にあったか</param>
+    /// <param name="previousPos">移動前の座標</param>
+    /// <param name="destinationPos">移動後の座標</param>
+    /// <returns></returns>
+    public static PiecePromoteJudgementType CheckPiecePromotable(Piece piece, bool isFromMainStage, Vector2Int previousPos, Vector2Int destinationPos)
+    {
+        // 相手陣地に入っているかどうか
+        bool isInPromotionZone = (piece.PlayerSide == PlayerSide.BOTTOM && destinationPos.y >= 6) ||
+                                 (piece.PlayerSide == PlayerSide.TOP && destinationPos.y <= 2) ||
+                                 (piece.PlayerSide == PlayerSide.BOTTOM && previousPos.y >= 6) ||
+                                 (piece.PlayerSide == PlayerSide.TOP && previousPos.y <= 2);
+        // 成れる駒かどうか
+        bool isPromotablePiece = piece.PieceType == PieceType.FU ||
+                                 piece.PieceType == PieceType.KYOSHA ||
+                                 piece.PieceType == PieceType.KEIMA ||
+                                 piece.PieceType == PieceType.GIN ||
+                                 piece.PieceType == PieceType.KAKU ||
+                                 piece.PieceType == PieceType.HISHA;
+        // 移動の前後どちらかで相手陣地に入っていて、まだ成っていなくて、今ターンに盤上に出た駒でなければ成る
+        if (isInPromotionZone && !piece.IsPromoted && isFromMainStage && isPromotablePiece)
+        {
+            // 少なくとも成れる状態(強制か任意かを確認する)
+
+            // 1列目の歩, 香車, 2列目の桂馬は強制的に成る
+            bool isForcedPromotion = ((piece.PieceType == PieceType.FU || piece.PieceType == PieceType.KYOSHA) &&
+                                     ((piece.PlayerSide == PlayerSide.BOTTOM && destinationPos.y == 8) ||
+                                      (piece.PlayerSide == PlayerSide.TOP && destinationPos.y == 0)))
+                                     ||
+                                     (piece.PieceType == PieceType.KEIMA &&
+                                     ((piece.PlayerSide == PlayerSide.BOTTOM && destinationPos.y >= 7) ||
+                                      (piece.PlayerSide == PlayerSide.TOP && destinationPos.y <= 1)));
+            if (isForcedPromotion)
+            {
+                // 強制的に成る
+                Debug.Log($"Piece forced promoted: {piece.PieceType} at {destinationPos}");
+                return PiecePromoteJudgementType.FORCE_PROMOTE;
+            }
+            else
+            {
+                // 任意で成れる
+                return PiecePromoteJudgementType.SELECTABLE_PROMOTE;
+            }
+        }
+
+        // 成ることはできない
+        return PiecePromoteJudgementType.CANT_PROMOTE;
     }
 }
