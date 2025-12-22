@@ -992,6 +992,10 @@ PrefabInstance:
       propertyPath: _myPlayerSide
       value: 9
       objectReference: {fileID: 0}
+    - target: {fileID: 1858723162111456022, guid: 0a970a38936f7880386a8dc79a7b43bc, type: 3}
+      propertyPath: _promotionDecision
+      value: 
+      objectReference: {fileID: 1953021669}
     - target: {fileID: 3146311340047260194, guid: 0a970a38936f7880386a8dc79a7b43bc, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -1406,6 +1410,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 34b7b67f721f0eeb8baa5cf07a360f66, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _gameManager: {fileID: 1953021664}
   _promotionConfirmUI: {fileID: 1586554263}
   _promotionYesButton: {fileID: 858297706}
   _promotionNoButton: {fileID: 1875181774}
@@ -2440,6 +2445,8 @@ GameObject:
   - component: {fileID: 1953021666}
   - component: {fileID: 1953021667}
   - component: {fileID: 1953021668}
+  - component: {fileID: 1953021669}
+  - component: {fileID: 1953021670}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -2463,7 +2470,6 @@ MonoBehaviour:
   _playerTop: {fileID: 785889145}
   _playerBottom: {fileID: 8263733763461040170}
   _mainStage: {fileID: 1391575487}
-  _ingameUIManager: {fileID: 1027760319}
   _piecePlacementReader: {fileID: 1953021668}
 --- !u!4 &1953021665
 Transform:
@@ -2505,9 +2511,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _clickRaycaster: {fileID: 1953021666}
-  _players:
-  - {fileID: 8263733763461040170}
-  - {fileID: 785889145}
 --- !u!114 &1953021668
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2520,6 +2523,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 08f6eb0900f081648be9332cd3d2ca83, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &1953021669
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1953021663}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7fb63de9f58e3144097c945afe68a6a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _ingameUIManager: {fileID: 1027760319}
+--- !u!114 &1953021670
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1953021663}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f18becdde2b0bd4aba48b825ae793e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _players:
+  - {fileID: 8263733763461040170}
+  - {fileID: 785889145}
+  _inputManager: {fileID: 1953021667}
 --- !u!1 &1969455206
 GameObject:
   m_ObjectHideFlags: 0
@@ -2733,6 +2765,10 @@ PrefabInstance:
       propertyPath: _myPieceStage
       value: 
       objectReference: {fileID: 846037658}
+    - target: {fileID: 1858723162111456022, guid: 0a970a38936f7880386a8dc79a7b43bc, type: 3}
+      propertyPath: _promotionDecision
+      value: 
+      objectReference: {fileID: 1953021669}
     - target: {fileID: 3146311340047260194, guid: 0a970a38936f7880386a8dc79a7b43bc, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
