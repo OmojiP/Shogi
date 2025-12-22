@@ -1,3 +1,4 @@
+using R3;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -16,8 +17,16 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Player _playerTop;
     [SerializeField] private Player _playerBottom;
     [SerializeField] private MainStage _mainStage;
-    [SerializeField] private IngameUIManager _ingameUIManager;
     [SerializeField] private PiecePlacementReader _piecePlacementReader;
+
+    /// <summary>
+    /// ゲームが終了したタイミングで勝者を通知するイベント
+    /// </summary>
+    private Subject<PlayerSide> _onEndedGame = new();
+    /// <summary>
+    /// ゲームが終了したタイミングで勝者を通知するイベント
+    /// </summary>
+    public Observable<PlayerSide> OnEndedGame => _onEndedGame;
 
     /// <summary>
     /// 現在のターン数
@@ -26,9 +35,6 @@ public class GameManager : MonoBehaviour
 
     public void Start()
     {
-        // UIの初期化
-        _ingameUIManager.InitializeUI();
-
         // 将棋盤のマスを生成
         _mainStage.GenerateStageCells();
 
@@ -37,16 +43,69 @@ public class GameManager : MonoBehaviour
         // 将棋盤に駒を生成
         _mainStage.SpawnPieces(initialPlacementInfos);
 
+        // イベントを登録
+        RegisterEvents();
+
         // ゲーム開始
         // 現時点ではBottomプレイヤーから開始
         _playerBottom.StartPlayerTurn();
     }
 
     /// <summary>
+    /// イベントを登録する
+    /// </summary>
+    private void RegisterEvents()
+    {
+        // Playerが駒を動かし終えたタイミングでターンを終了する処理を登録
+        _playerBottom.CurrentPlayerTurnPhase
+            .Pairwise()
+            .Where(statePair =>
+                // 駒を動かし終わったら
+                statePair.Previous == PlayerTurnPhaseType.PIECE_MOVING &&
+                statePair.Current != PlayerTurnPhaseType.PIECE_MOVING)
+            .Subscribe(_ =>
+            {
+                // ターン終了として、次のPlayerにターンを回す
+                EndPlayerTurn(PlayerSide.BOTTOM);
+            })
+            .AddTo(this);
+        // Playerが駒を動かし終えたタイミングでターンを終了する処理を登録
+        _playerTop.CurrentPlayerTurnPhase
+            .Pairwise()
+            .Where(statePair =>
+                // 駒を動かし終わったら    
+                statePair.Previous == PlayerTurnPhaseType.PIECE_MOVING &&
+                statePair.Current != PlayerTurnPhaseType.PIECE_MOVING)
+            .Subscribe(_ =>
+            {
+                // ターン終了として、次のPlayerにターンを回す
+                EndPlayerTurn(PlayerSide.TOP);
+            })
+            .AddTo(this);
+
+        // 下側のPlayerが王をとった時の処理を登録
+        _playerBottom.OnGottenKing
+            .Subscribe(_ =>
+            {
+                // 下側のPlayerの勝利でゲーム終了
+                EndGame(PlayerSide.BOTTOM);
+            })
+            .AddTo(this);
+        // 上側のPlayerが王をとった時の処理を登録
+        _playerTop.OnGottenKing
+            .Subscribe(_ =>
+            {
+                // 上側のPlayerの勝利でゲーム終了
+                EndGame(PlayerSide.TOP);
+            })
+            .AddTo(this);
+    }
+
+    /// <summary>
     /// プレイヤーのターン終了時の処理
     /// </summary>
     /// <param name="endedPlayerSide"></param>
-    public void OnPlayerTurnEnded(PlayerSide endedPlayerSide)
+    public void EndPlayerTurn(PlayerSide endedPlayerSide)
     {
         // ターン終了時の処理
         Debug.Log($"[GameManager] Player {endedPlayerSide} turn ended.");
@@ -73,12 +132,12 @@ public class GameManager : MonoBehaviour
     /// ゲーム終了時の処理
     /// </summary>
     /// <param name="winnerSide"></param>
-    public void OnGameEnded(PlayerSide winnerSide)
+    public void EndGame(PlayerSide winnerSide)
     {
         // ゲーム終了時の処理
         Debug.Log($"[GameManager] Game ended. Winner: {winnerSide}");
 
-        // 結果UIを表示
-        _ingameUIManager.ShowResultUI(winnerSide);
+        // 勝者を通知
+        _onEndedGame.OnNext(winnerSide);
     }
 }
